@@ -64,3 +64,11 @@ export const features = [
     "Centralized employee card management",
     "Real-time scan analytics",
 ];
+
+export const DESIGNATIONS = [
+    "Software Engineer", "Senior Software Engineer", "Staff Engineer",
+    "Principal Engineer", "Engineering Manager", "VP Engineering", "CTO",
+    "Product Manager", "Senior Product Manager", "UX Designer",
+    "Marketing Manager", "Sales Manager", "Business Development",
+    "Operations Manager", "HR Manager",
+];
