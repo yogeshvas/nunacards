@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlanType {
+  BASIC
+  PRO
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  plan      PlanType @default(BASIC)
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  designation  String?
+  email        String?      @unique
+  phone        String
+  password     String?
+  slug         String       @unique
+  country      String
+  countryCode  String
+  employeeCode String       @unique
+  role         UserRole     @default(EMPLOYEE)
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id])
+  scans        ScanLog[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  leads        Lead[]
+
+  @@index([orgId])
+}
+
+model ScanLog {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   User     @relation(fields: [employeeId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId])
+}
+
+model Lead {
+  id           String   @id @default(cuid())
+  name         String
+  phoneNumber  String
+  countryCode  String
+  scannedEmpId String
+  scannedEmp   User     @relation(fields: [scannedEmpId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([scannedEmpId])
+}
+
+model SuperAdmin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  otp       String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
