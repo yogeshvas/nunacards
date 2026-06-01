@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw, Plus, X, Upload, Phone, Mail } from "lucide-react";
+import toast from "react-hot-toast";
 import { CountryCodeDropdown } from "@/components/custom/CountryCodeDropdown";
-import { QrSvg } from "@/utils/qr";
+import { EmployeeQR } from "@/components/custom/EmployeeQR";
 import { DESIGNATIONS } from "@/data/constants";
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -191,9 +193,7 @@ function CardScreen({
           <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">
             Scan to connect
           </p>
-          <div className="h-24 w-24 rounded-xl bg-zinc-900 p-2 border border-zinc-800">
-            <QrSvg dark="#3f3f46" light="#18181b" dot="#71717a" />
-          </div>
+          <EmployeeQR employeeCode={employeeCode || "EMP-XXXXX"} size={88}/>
         </div>
       </div>
     </div>
@@ -203,7 +203,9 @@ function CardScreen({
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function NewEmployeePage() {
+  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const imageFileRef = useRef<File | null>(null);
 
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -215,12 +217,14 @@ export default function NewEmployeePage() {
   const [phone, setPhone] = useState("");
   const [employeeCode, setEmployeeCode] = useState("");
   const [labels, setLabels] = useState<{ key: string; value: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const orgName = "Your Organization";
   const [dragging, setDragging] = useState(false);
 
   function applyFile(file: File) {
     if (!file.type.startsWith("image/")) return;
+    imageFileRef.current = file;
     setProfilePic(URL.createObjectURL(file));
   }
 
@@ -246,6 +250,43 @@ export default function NewEmployeePage() {
     setLabels(l => l.map((lbl, idx) => idx === i ? { ...lbl, [field]: val } : lbl));
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    if (!phone.trim()) { toast.error("Phone number is required"); return; }
+    if (!employeeCode.trim()) { toast.error("Employee code is required"); return; }
+
+    setLoading(true);
+    const toastId = toast.loading("Creating employee…");
+    try {
+      const fd = new FormData();
+      fd.append("name", name.trim());
+      fd.append("email", email.trim());
+      fd.append("designation", designation.trim());
+      fd.append("countryCode", countryCode);
+      fd.append("country", country);
+      fd.append("phone", phone.trim());
+      fd.append("employeeCode", employeeCode.trim());
+      fd.append("labels", JSON.stringify(labels.filter(l => l.key && l.value)));
+      if (imageFileRef.current) fd.append("profileImage", imageFileRef.current);
+
+      const res = await fetch("/api/employees", { method: "POST", body: fd });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to create employee", { id: toastId });
+        return;
+      }
+
+      toast.success("Employee created!", { id: toastId });
+      router.push(`/employees/${data.employee.id}`);
+    } catch {
+      toast.error("Network error. Please try again.", { id: toastId });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div>
       {/* breadcrumb */}
@@ -260,7 +301,7 @@ export default function NewEmployeePage() {
       <div className="grid lg:grid-cols-[1fr_300px] gap-16 items-start">
 
         {/* ── form ── */}
-        <div className="max-w-lg space-y-6">
+        <form onSubmit={handleSubmit} className="max-w-lg space-y-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Create Employee</h1>
             <p className="mt-1 text-sm text-zinc-400">Fill in the details to generate a digital card.</p>
@@ -415,11 +456,14 @@ export default function NewEmployeePage() {
             <Plus className="h-4 w-4" /> Add label
           </button>
 
-          <button type="button"
-            className="mt-2 h-11 w-full rounded-xl bg-white text-sm font-semibold text-black transition hover:bg-zinc-100 active:scale-[0.98]">
-            Create Employee
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 h-11 w-full rounded-xl bg-white text-sm font-semibold text-black transition hover:bg-zinc-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Creating…" : "Create Employee"}
           </button>
-        </div>
+        </form>
 
         {/* ── phone preview ── */}
         <div className="hidden lg:flex flex-col items-center gap-2 sticky top-24">
