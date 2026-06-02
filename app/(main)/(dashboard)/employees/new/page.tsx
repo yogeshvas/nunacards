@@ -100,11 +100,11 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 // ── card screen (inside phone) ────────────────────────────────────────────────
 
 function CardScreen({
-  name, email, designation, phone, profilePic, labels, orgName, countryCode,
+  name, email, designation, phone, profilePic, labels, orgName, countryCode, employeeCode,
 }: {
   name: string; email: string; designation: string; phone: string;
   profilePic: string | null; labels: { key: string; value: string }[]; orgName: string;
-  countryCode: string;
+  countryCode: string; employeeCode: string;
 }) {
   const displayName = name || "Full Name";
   const displayDesignation = designation || "Designation";
@@ -473,7 +473,7 @@ export default function NewEmployeePage() {
             <CardScreen
               name={name} email={email} designation={designation}
               phone={phone} profilePic={profilePic} labels={labels} orgName={orgName}
-              countryCode={countryCode}
+              countryCode={countryCode} employeeCode={employeeCode}
             />
           </PhoneMockup>
         </div>
