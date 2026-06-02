@@ -7,10 +7,14 @@ import {
   ArrowLeft, Mail, Phone, Tag, QrCode,
   Pencil, Archive, Users, BarChart2,
   UserCheck, Calendar, PhoneCall,
-  Send, ChevronDown,
+  Send, ChevronDown, Download, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { EmployeeQR } from "@/components/custom/EmployeeQR";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend,
+} from "recharts";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -21,7 +25,14 @@ type Employee = {
   profileImage: string | null; labels: Label[]; slug: string; createdAt: string;
 };
 type Lead = { id: string; name: string; phoneNumber: string; countryCode: string; createdAt: string };
-type ScanData = { total: number; byDate: Record<string, number> };
+type ScanData = {
+  totalScans: number;
+  scansByDate: Record<string, number>;
+  totalViews: number;
+  uniqueViews: number;
+  repeatViews: number;
+  viewsByDate: Record<string, number>;
+};
 
 type Tab = "info" | "leads" | "engagement";
 
@@ -143,19 +154,60 @@ function InfoTab({ emp }: { emp: Employee }) {
   );
 }
 
+const LEADS_PER_PAGE = 20;
+
 function LeadsTab({ empId }: { empId: string }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/employees/${empId}/leads`)
-      .then(r => r.json()).then(d => setLeads(d.leads ?? []))
+    setLoading(true);
+    fetch(`/api/employees/${empId}/leads?page=${page}&limit=${LEADS_PER_PAGE}`)
+      .then(r => r.json())
+      .then(d => {
+        setLeads(d.leads ?? []);
+        setTotal(d.total ?? 0);
+        setTotalPages(d.totalPages ?? 1);
+      })
       .finally(() => setLoading(false));
-  }, [empId]);
+  }, [empId, page]);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/employees/${empId}/leads?export=true`);
+      const data = await res.json();
+      const allLeads: Lead[] = data.leads ?? [];
+
+      const rows = [
+        ["Name", "Country Code", "Phone", "Date"],
+        ...allLeads.map(l => [
+          l.name,
+          l.countryCode,
+          l.phoneNumber,
+          new Date(l.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        ]),
+      ];
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `leads-${empId}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading) return <div className="flex justify-center py-16"><div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-700 border-t-white"/></div>;
 
-  if (leads.length === 0) return (
+  if (total === 0) return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 py-20 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800"><Users className="h-5 w-5 text-zinc-400"/></div>
       <p className="mt-3 text-sm font-medium text-white">No leads yet</p>
@@ -166,90 +218,238 @@ function LeadsTab({ empId }: { empId: string }) {
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden">
       <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Leads captured</p>
-        <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">{leads.length}</span>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-white">Leads captured</p>
+          <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">{total}</span>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="flex items-center gap-1.5 h-8 rounded-lg border border-zinc-700 px-3 text-xs font-medium text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors disabled:opacity-50"
+        >
+          <Download className="h-3.5 w-3.5"/>
+          {exporting ? "Exporting…" : "Export CSV"}
+        </button>
       </div>
       <div className="divide-y divide-zinc-800">
-        {leads.map(lead => (
-          <div key={lead.id} className="flex items-center gap-4 px-6 py-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800">
-              <UserCheck className="h-4 w-4 text-zinc-400"/>
+        {leads.map(lead => {
+          const waPhone = `${lead.countryCode.replace(/^\+/, "")}${lead.phoneNumber}`;
+          const initial = lead.name && lead.name !== "Unknown"
+            ? lead.name[0].toUpperCase() : "?";
+          return (
+            <div key={lead.id} className="flex items-center gap-4 px-6 py-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-300">
+                {initial}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white">{lead.name}</p>
+                <p className="text-xs text-zinc-500">{lead.countryCode} {lead.phoneNumber}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`https://wa.me/${waPhone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open in WhatsApp"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600/10 text-green-500 hover:bg-green-600/20 transition-colors"
+                >
+                  <span className="text-sm">💬</span>
+                </a>
+                <p className="text-xs text-zinc-500 w-16 text-right">
+                  {new Date(lead.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white">{lead.name}</p>
-              <p className="text-xs text-zinc-500">{lead.countryCode} {lead.phoneNumber}</p>
+          );
+        })}
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800">
+          <p className="text-xs text-zinc-500">
+            Page {page} of {totalPages} · {total} total
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors disabled:opacity-30"
+            >
+              <ChevronLeft className="h-3.5 w-3.5"/>
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors disabled:opacity-30"
+            >
+              <ChevronRight className="h-3.5 w-3.5"/>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function toDateStr(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function buildDateRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const cur = new Date(start + "T00:00:00Z");
+  const last = new Date(end + "T00:00:00Z");
+  while (cur <= last) {
+    dates.push(toDateStr(cur));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+const PRESETS = [
+  { label: "7d", days: 7 },
+  { label: "14d", days: 14 },
+  { label: "30d", days: 30 },
+  { label: "90d", days: 90 },
+];
+
+function EngagementTab({ empId }: { empId: string }) {
+  const today = toDateStr(new Date());
+  const default14 = toDateStr(new Date(Date.now() - 13 * 86400000));
+
+  const [startDate, setStartDate] = useState(default14);
+  const [endDate, setEndDate] = useState(today);
+  const [data, setData] = useState<ScanData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/employees/${empId}/scans?startDate=${startDate}&endDate=${endDate}`)
+      .then(r => r.json()).then(d => setData(d))
+      .finally(() => setLoading(false));
+  }, [empId, startDate, endDate]);
+
+  function applyPreset(days: number) {
+    const end = new Date();
+    const start = new Date(Date.now() - (days - 1) * 86400000);
+    setStartDate(toDateStr(start));
+    setEndDate(toDateStr(end));
+  }
+
+  const totalScans  = data?.totalScans ?? 0;
+  const totalViews  = data?.totalViews ?? 0;
+  const uniqueViews = data?.uniqueViews ?? 0;
+  const repeatViews = data?.repeatViews ?? 0;
+  const viewsByDate  = data?.viewsByDate ?? {};
+  const scansByDate  = data?.scansByDate ?? {};
+
+  const chartData = buildDateRange(startDate, endDate).map(d => ({
+    date: d.slice(5).replace("-", "/"),
+    Views: viewsByDate[d] ?? 0,
+    Scans: scansByDate[d] ?? 0,
+  }));
+
+  return (
+    <div className="space-y-4">
+      {/* stat grid */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Total Views" value={totalViews} />
+        <StatCard label="Unique Viewers" value={uniqueViews} accent />
+        <StatCard label="Repeat Views" value={repeatViews} />
+        <StatCard label="QR Scans" value={totalScans} />
+      </div>
+
+      {/* card views chart */}
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-4 w-4 text-zinc-500"/>
+            <p className="text-sm font-semibold text-white">Card views</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1">
+              {PRESETS.map(p => (
+                <button
+                  key={p.label}
+                  onClick={() => applyPreset(p.days)}
+                  className="h-7 rounded-lg px-2.5 text-[11px] font-medium border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors"
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-xs text-zinc-500">{new Date(lead.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</p>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={startDate}
+                max={endDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="h-7 rounded-lg border border-zinc-700 bg-zinc-900 px-2 text-[11px] text-zinc-300 focus:border-zinc-500 focus:outline-none"
+              />
+              <span className="text-xs text-zinc-600">–</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                max={today}
+                onChange={e => setEndDate(e.target.value)}
+                className="h-7 rounded-lg border border-zinc-700 bg-zinc-900 px-2 text-[11px] text-zinc-300 focus:border-zinc-500 focus:outline-none"
+              />
             </div>
           </div>
-        ))}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-16"><div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-700 border-t-white"/></div>
+        ) : chartData.every(d => d.Views === 0 && d.Scans === 0) ? (
+          <div className="flex flex-col items-center py-12 text-center">
+            <PhoneCall className="h-8 w-8 text-zinc-700 mb-2"/>
+            <p className="text-sm text-zinc-500">No activity in this period.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={chartData} barCategoryGap="30%" barGap={4}>
+              <CartesianGrid vertical={false} stroke="#27272a" />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "#71717a", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fill: "#71717a", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                width={28}
+              />
+              <Tooltip
+                contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 10, fontSize: 12 }}
+                labelStyle={{ color: "#a1a1aa", marginBottom: 4 }}
+                itemStyle={{ color: "#fff" }}
+                cursor={{ fill: "rgba(255,255,255,0.04)" }}
+              />
+              <Legend
+                iconType="square"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 11, color: "#71717a", paddingTop: 12 }}
+              />
+              <Bar dataKey="Views" fill="#7c3aed" radius={[4, 4, 0, 0]} opacity={0.85} />
+              <Bar dataKey="Scans" fill="#4f46e5" radius={[4, 4, 0, 0]} opacity={0.85} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
 }
 
-function EngagementTab({ empId }: { empId: string }) {
-  const [data, setData] = useState<ScanData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`/api/employees/${empId}/scans`)
-      .then(r => r.json()).then(d => setData(d))
-      .finally(() => setLoading(false));
-  }, [empId]);
-
-  if (loading) return <div className="flex justify-center py-16"><div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-700 border-t-white"/></div>;
-
-  const total = data?.total ?? 0;
-  const byDate = data?.byDate ?? {};
-  const dates = Object.keys(byDate).sort().slice(-14);
-  const max = Math.max(...dates.map(d => byDate[d]), 1);
-
+function StatCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="space-y-4">
-      {/* stat card */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <p className="text-xs text-zinc-500 uppercase tracking-widest">Total scans</p>
-          <p className="mt-2 text-3xl font-bold text-white">{total}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <p className="text-xs text-zinc-500 uppercase tracking-widest">Last 14 days</p>
-          <p className="mt-2 text-3xl font-bold text-white">{dates.reduce((s,d)=>s+(byDate[d]??0),0)}</p>
-        </div>
-      </div>
-
-      {/* bar chart */}
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-        <div className="flex items-center gap-2 mb-5">
-          <BarChart2 className="h-4 w-4 text-zinc-500"/>
-          <p className="text-sm font-semibold text-white">Scans — last 14 days</p>
-        </div>
-        {dates.length === 0 ? (
-          <div className="flex flex-col items-center py-10 text-center">
-            <PhoneCall className="h-8 w-8 text-zinc-700 mb-2"/>
-            <p className="text-sm text-zinc-500">No scans recorded yet.</p>
-          </div>
-        ) : (
-          <div className="flex items-end gap-1.5 h-28">
-            {dates.map(d => (
-              <div key={d} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t bg-indigo-500/70 hover:bg-indigo-500 transition-colors"
-                  style={{ height: `${Math.round((byDate[d]/max)*100)}%`, minHeight: 2 }}
-                  title={`${byDate[d]} scans on ${d}`}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-        {dates.length > 0 && (
-          <div className="flex justify-between mt-2 text-[10px] text-zinc-600">
-            <span>{dates[0]?.slice(5)}</span>
-            <span>{dates[dates.length-1]?.slice(5)}</span>
-          </div>
-        )}
-      </div>
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <p className="text-xs text-zinc-500 uppercase tracking-widest leading-none">{label}</p>
+      <p className={`mt-2 text-2xl font-bold ${accent ? "text-violet-400" : "text-white"}`}>{value}</p>
     </div>
   );
 }
@@ -264,6 +464,7 @@ export default function EmployeeDetailPage() {
   const [archiving, setArchiving] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendMenuOpen, setSendMenuOpen] = useState(false);
+  const [sendingCard, setSendingCard] = useState(false);
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<Tab>("info");
 
@@ -309,6 +510,21 @@ export default function EmployeeDetailPage() {
     }
   }
 
+  async function handleSendCard() {
+    setSendingCard(true);
+    const tid = toast.loading("Sending card to employee…");
+    try {
+      const res = await fetch(`/api/employees/${id}/send-card`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Failed to send", { id: tid }); return; }
+      toast.success("Card sent to employee's WhatsApp!", { id: tid });
+    } catch {
+      toast.error("Network error", { id: tid });
+    } finally {
+      setSendingCard(false);
+    }
+  }
+
   async function handleArchive() {
     if (!confirm(`Archive ${emp?.name}? They will be hidden from the employee list.`)) return;
     setArchiving(true);
@@ -348,6 +564,16 @@ export default function EmployeeDetailPage() {
           <span className="text-sm font-medium text-white">{emp.name}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Send Card button */}
+          <button
+            onClick={handleSendCard}
+            disabled={sendingCard}
+            className="flex items-center gap-1.5 h-9 rounded-lg bg-green-600 px-3 text-sm font-medium text-white transition hover:bg-green-500 disabled:opacity-50"
+          >
+            <span className="text-sm">💬</span>
+            {sendingCard ? "Sending…" : "Send Card"}
+          </button>
+
           {/* Send QR dropdown */}
           <div className="relative" ref={sendMenuRef}>
             <button

@@ -51,11 +51,22 @@ model User {
   orgId        String
   organization Organization @relation(fields: [orgId], references: [id])
   scans        ScanLog[]
+  leads        Lead[]
+  cardViews    CardView[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  leads        Lead[]
 
   @@index([orgId])
+}
+
+model CardView {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   User     @relation(fields: [employeeId], references: [id])
+  isUnique   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId])
 }
 
 model ScanLog {

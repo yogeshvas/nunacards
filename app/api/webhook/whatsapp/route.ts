@@ -7,58 +7,61 @@ import { sendWhatsAppCard } from "@/lib/aisensy";
 
 function verifySignature(rawBody: string, signature: string): boolean {
   const secret = process.env.AISENSY_WEBHOOK_SECRET;
-  if (!secret) return true; // skip if not configured yet
+  if (!secret) return true;
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   return expected === signature;
 }
 
-// ── extract text from AiSensy message_content ─────────────────────────────────
-// WhatsApp Cloud API nests text as: { text: { body: "..." } }
-// AiSensy may simplify to: { text: "..." } or just a string
+// ── text extraction ───────────────────────────────────────────────────────────
 
 function extractMessageText(messageContent: unknown): string {
   if (!messageContent) return "";
   if (typeof messageContent === "string") return messageContent;
-
   const mc = messageContent as Record<string, unknown>;
-
-  // { text: { body: "..." } }
-  if (mc.text && typeof mc.text === "object") {
+  if (mc.text && typeof mc.text === "object")
     return String((mc.text as Record<string, unknown>).body ?? "");
-  }
-  // { text: "..." }
   if (typeof mc.text === "string") return mc.text;
-  // { body: "..." }
   if (typeof mc.body === "string") return mc.body;
-
   return "";
 }
 
-// ── employee code regex ───────────────────────────────────────────────────────
+// ── name extraction — tries every known field AiSensy might send ──────────────
+
+function extractName(
+  message: Record<string, unknown>,
+  contact: Record<string, unknown>,
+): string {
+  // contact object (present in contact.created + sometimes message.sender.user)
+  const contactName = String(contact.name ?? "").trim();
+  if (contactName) return contactName;
+
+  // WhatsApp pushName — sometimes nested in message
+  const push =
+    String(message.pushName ?? message.push_name ?? "").trim();
+  if (push) return push;
+
+  // Some AiSensy versions embed it here
+  const msgContact = (message.contact ?? {}) as Record<string, unknown>;
+  const fromName = String(msgContact.name ?? "").trim();
+  if (fromName) return fromName;
+
+  return "";
+}
 
 const CODE_RE = /\bEMP-[A-Z0-9]{3,10}\b/i;
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Read raw body BEFORE any parsing — required for signature check
   const rawBody = await req.text();
 
-  // Verify AiSensy signature
   const signature = req.headers.get("x-aisensy-signature") ?? "";
   if (!verifySignature(rawBody, signature)) {
     console.warn("[webhook/whatsapp] signature mismatch");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Parse notification envelope
-  let notification: {
-    id?: string;
-    topic?: string;
-    delivery_attempt?: number;
-    data?: Record<string, unknown>;
-  };
-
+  let notification: { id?: string; topic?: string; data?: Record<string, unknown> };
   try {
     notification = JSON.parse(rawBody);
   } catch {
@@ -67,12 +70,46 @@ export async function POST(req: NextRequest) {
 
   const { topic, data = {} } = notification;
 
-  // We only care about user-sent messages
+  // ── contact.created / contact.attribute.revised ───────────────────────────
+  // Fires when a new WhatsApp contact messages the number for the first time.
+  // We use it to backfill "Unknown" lead names with their real display name.
+
+  if (topic === "contact.created" || topic === "contact.attribute.revised") {
+    const contact = (data.contact ?? {}) as Record<string, unknown>;
+    const name = String(contact.name ?? "").trim();
+    const fullPhone = String(contact.phone_number ?? "").trim();
+    const countryCode = String(contact.country_code ?? "").trim();
+
+    if (name && fullPhone && name.toLowerCase() !== "unknown") {
+      // Strip country code to get local number (same format stored on Lead)
+      const localPhone = countryCode && fullPhone.startsWith(countryCode)
+        ? fullPhone.slice(countryCode.length)
+        : fullPhone;
+
+      // Update any leads saved with "Unknown" for this phone number
+      prisma.lead.updateMany({
+        where: {
+          name: "Unknown",
+          OR: [
+            { phoneNumber: fullPhone },
+            { phoneNumber: localPhone },
+          ],
+        },
+        data: { name },
+      }).catch(() => {});
+    }
+
+    return NextResponse.json({ received: true });
+  }
+
+  // ── message.sender.user ───────────────────────────────────────────────────
+
   if (topic !== "message.sender.user") {
     return NextResponse.json({ received: true });
   }
 
   const message = (data.message ?? {}) as Record<string, unknown>;
+  const contact = (data.contact ?? {}) as Record<string, unknown>;
   const messageType = String(message.message_type ?? "").toUpperCase();
   const senderPhone = String(message.phone_number ?? "");
 
@@ -82,37 +119,49 @@ export async function POST(req: NextRequest) {
 
   const text = extractMessageText(message.message_content).trim();
   const match = text.match(CODE_RE);
-
-  if (!match) {
-    return NextResponse.json({ received: true });
-  }
+  if (!match) return NextResponse.json({ received: true });
 
   const employeeCode = match[0].toUpperCase();
 
-  // Visitor name comes from the contact object (present in some topics)
-  const contact = (data.contact ?? {}) as Record<string, unknown>;
-  const visitorName = String(contact.name ?? "there");
+  // Best-effort name — may be empty if AiSensy doesn't include it here
+  const visitorName = extractName(message, contact);
+  const contactCountryCode = String(contact.country_code ?? "");
 
-  // Look up employee
+  // Parse into separate countryCode + localPhone for Lead record
+  let leadPhone = senderPhone;
+  let leadCountryCode = contactCountryCode ? `+${contactCountryCode}` : "";
+  if (contactCountryCode && senderPhone.startsWith(contactCountryCode)) {
+    leadPhone = senderPhone.slice(contactCountryCode.length);
+  }
+
   const employee = await prisma.user.findFirst({
     where: { employeeCode, archived: false },
     select: { id: true, name: true, designation: true, profileImage: true, slug: true },
   });
 
   if (!employee) {
-    console.warn(`[webhook/whatsapp] unknown employee code: ${employeeCode}`);
+    console.warn(`[webhook/whatsapp] unknown code: ${employeeCode}`);
     return NextResponse.json({ received: true });
   }
 
-  // Respond 200 immediately — then fire async tasks
+  // Fire card + log async — respond 200 immediately
   sendWhatsAppCard({
     visitorPhone: senderPhone,
-    visitorName,
+    visitorName: visitorName || "there",
     employeeName: employee.name,
     employeeDesignation: employee.designation ?? "",
     employeeSlug: employee.slug,
     profileImageUrl: employee.profileImage,
   }).catch(err => console.error("[webhook/whatsapp] sendWhatsAppCard error:", err));
+
+  prisma.lead.create({
+    data: {
+      name: visitorName || "Unknown",
+      phoneNumber: leadPhone,
+      countryCode: leadCountryCode || "+",
+      scannedEmpId: employee.id,
+    },
+  }).catch(() => {});
 
   prisma.scanLog
     .create({ data: { employeeId: employee.id } })
@@ -121,7 +170,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-// AiSensy sends a GET for subscription verification
+// AiSensy GET for subscription verification
 export async function GET(req: NextRequest) {
   const challenge = req.nextUrl.searchParams.get("hub.challenge");
   if (challenge) return new NextResponse(challenge, { status: 200 });
