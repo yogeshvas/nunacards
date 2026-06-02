@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { sendWhatsAppCard } from "@/lib/aisensy";
+import { getOrGenerateCardImage } from "@/lib/cardImage";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,23 +16,24 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         designation: true,
         phone: true,
         countryCode: true,
-        profileImage: true,
         slug: true,
       },
     });
 
     if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // destination = employee's own number (strip leading +)
+    // get cached card image or generate + cache it now
+    const cardImageUrl = await getOrGenerateCardImage(id);
+
     const destination = `${employee.countryCode.replace(/^\+/, "")}${employee.phone}`;
 
     await sendWhatsAppCard({
       visitorPhone: destination,
-      visitorName: employee.name,       // {{1}} — "Hi Yogesh"
-      employeeName: employee.name,      // {{2}}
-      employeeDesignation: employee.designation ?? "",  // {{3}}
+      visitorName: employee.name,
+      employeeName: employee.name,
+      employeeDesignation: employee.designation ?? "",
       employeeSlug: employee.slug,
-      profileImageUrl: employee.profileImage,
+      profileImageUrl: cardImageUrl,
     });
 
     return NextResponse.json({ message: "Card sent" });

@@ -7,7 +7,7 @@ import {
   ArrowLeft, Mail, Phone, Tag, QrCode,
   Pencil, Archive, Users, BarChart2,
   UserCheck, Calendar, PhoneCall,
-  Send, ChevronDown, Download, ChevronLeft, ChevronRight,
+  Send, ChevronDown, Download, ChevronLeft, ChevronRight, ExternalLink,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { EmployeeQR } from "@/components/custom/EmployeeQR";
@@ -454,6 +454,174 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
   );
 }
 
+// ── WhatsApp preview modal ────────────────────────────────────────────────────
+
+function MiniCardPreview({ emp }: { emp: Employee }) {
+  const avatarSrc = emp.profileImage
+    ?? `https://api.dicebear.com/10.x/micah/svg?seed=${encodeURIComponent(emp.name)}`;
+  return (
+    <div style={{ display: "flex", height: 148, background: "#09090b", borderRadius: "8px 8px 0 0", overflow: "hidden" }}>
+      {/* left gradient strip */}
+      <div style={{ width: 84, flexShrink: 0, background: "linear-gradient(160deg,#4f46e5 0%,#7c3aed 60%,#312e81 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", padding: "14px 10px", position: "relative" }}>
+        <div style={{ position: "absolute", top: -30, left: -30, width: 90, height: 90, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+          <img src={avatarSrc} style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", background: "#312e81" }} alt="" />
+        </div>
+        <div style={{ textAlign: "center", position: "relative" }}>
+          <div style={{ fontSize: 6, color: "rgba(255,255,255,0.5)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>Digital Card</div>
+          <div style={{ fontSize: 7.5, color: "white", fontWeight: 700 }}>NunaCards</div>
+        </div>
+      </div>
+      {/* right content */}
+      <div style={{ flex: 1, padding: "14px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "white", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.name}</div>
+          {emp.designation && <div style={{ fontSize: 8.5, color: "#a78bfa", marginTop: 4 }}>{emp.designation}</div>}
+          <div style={{ width: 18, height: 2, background: "#4f46e5", margin: "8px 0", borderRadius: 2 }} />
+          <div style={{ fontSize: 8.5, color: "#d4d4d8", marginBottom: 3 }}>📱 {emp.countryCode} {emp.phone}</div>
+          {emp.email && <div style={{ fontSize: 8.5, color: "#d4d4d8" }}>✉️ {emp.email}</div>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#4f46e5" }} />
+          <div style={{ fontSize: 6, color: "#52525b", textTransform: "uppercase", letterSpacing: 1 }}>NunaCards · Connect</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SendCardPreviewModal({ emp, onClose, onConfirm, sending }: {
+  emp: Employee;
+  onClose: () => void;
+  onConfirm: () => void;
+  sending: boolean;
+}) {
+  const firstName = emp.name.split(" ")[0];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-6 px-4">
+      {/* backdrop */}
+      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={!sending ? onClose : undefined} />
+
+      <div className="relative z-10 flex flex-col items-center gap-5 w-full" style={{ maxWidth: 320 }}>
+        {/* heading */}
+        <div className="text-center">
+          <p className="text-sm font-semibold text-white">Preview — WhatsApp Message</p>
+          <p className="mt-1 text-xs text-zinc-500">How it will look on the employee's WhatsApp</p>
+        </div>
+
+        {/* ── phone mockup ── */}
+        <div className="relative" style={{ width: 300 }}>
+          {/* hardware side buttons */}
+          <div className="absolute rounded-l-full bg-zinc-700" style={{ left: -8, top: 75, width: 5, height: 21 }} />
+          <div className="absolute rounded-l-full bg-zinc-700" style={{ left: -8, top: 104, width: 5, height: 33 }} />
+          <div className="absolute rounded-l-full bg-zinc-700" style={{ left: -8, top: 148, width: 5, height: 33 }} />
+          <div className="absolute rounded-r-full bg-zinc-700" style={{ right: -8, top: 129, width: 5, height: 63 }} />
+
+          <div style={{ borderRadius: 52, border: "10px solid #27272a", background: "#18181b", boxShadow: "0 0 0 1px #3f3f46, 0 32px 64px -16px rgba(0,0,0,0.8)" }}>
+            <div style={{ borderRadius: 44, overflow: "hidden" }}>
+
+              {/* status bar inside WA green header */}
+              <div style={{ background: "#075E54" }}>
+                <div className="relative flex items-center justify-between px-5 pt-3 pb-1">
+                  <span className="text-[11px] font-semibold text-white">9:41</span>
+                  <div className="absolute left-1/2 -translate-x-1/2 bg-black" style={{ top: 8, width: 108, height: 26, borderRadius: 20 }} />
+                  <div className="flex items-center gap-1">
+                    <svg width="13" height="10" viewBox="0 0 13 10" fill="white"><rect x="0" y="6" width="2" height="4" rx="0.5" opacity="0.4"/><rect x="3.5" y="4" width="2" height="6" rx="0.5" opacity="0.6"/><rect x="7" y="2" width="2" height="8" rx="0.5" opacity="0.8"/><rect x="10.5" y="0" width="2" height="10" rx="0.5"/></svg>
+                    <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0.5" y="0.5" width="17" height="10" rx="2.5" stroke="white" strokeOpacity="0.35"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="white"/><path d="M18.5 3.5v4" stroke="white" strokeOpacity="0.4" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  </div>
+                </div>
+                {/* WA contact row */}
+                <div className="flex items-center gap-2 px-3 pb-3 pt-1">
+                  <ChevronLeft className="h-5 w-5 shrink-0 text-white/80" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-700">
+                    <span className="text-xs font-bold text-white">C</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold leading-tight text-white">ConnectCard</p>
+                    <p className="text-[10px] leading-tight text-green-200/70">online</p>
+                  </div>
+                  <PhoneCall className="h-4 w-4 text-white/70" />
+                </div>
+              </div>
+
+              {/* chat area */}
+              <div className="overflow-y-auto" style={{ height: 430, background: "#e5ddd5", backgroundImage: "radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)", backgroundSize: "22px 22px" }}>
+                {/* date chip */}
+                <div className="flex justify-center py-3">
+                  <span className="rounded-full px-3 py-0.5 text-[10px] text-zinc-600" style={{ background: "rgba(225,218,210,0.95)" }}>
+                    TODAY
+                  </span>
+                </div>
+
+                {/* message bubble */}
+                <div className="mx-2.5 mb-3 overflow-hidden rounded-lg shadow-sm" style={{ background: "#fff", maxWidth: "94%" }}>
+                  {/* mini visiting card */}
+                  <MiniCardPreview emp={emp} />
+
+                  {/* message body */}
+                  <div className="px-3 pt-3 pb-1" style={{ color: "#111b21", fontSize: 11.5, lineHeight: 1.6 }}>
+                    <p>Hi <strong>{firstName}</strong>,</p>
+                    <p className="mt-2">It was great connecting with you today! 🤝</p>
+                    <p className="mt-2">
+                      As promised, here is my <strong>Digital Visiting Card</strong>. Please tap the button below to view my contact details, social links, and save them directly to your phone.
+                    </p>
+                    <p className="mt-2">Looking forward to staying in touch!</p>
+                    <p className="mt-2">Best regards,</p>
+                    <p><strong>{emp.name}</strong></p>
+                    {emp.designation && <p><strong>{emp.designation}</strong></p>}
+                    <p>Thanks.</p>
+                  </div>
+                  <p className="px-3 pb-2.5 text-[10px]" style={{ color: "#8696a0" }}>Powered By NunaCards</p>
+
+                  {/* divider + CTA button */}
+                  <div style={{ borderTop: "1px solid #e9edef" }} />
+                  <div className="flex items-center justify-center gap-1.5 py-2.5" style={{ color: "#00a884" }}>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span className="text-[12px] font-medium">View Card</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* input bar */}
+              <div className="flex items-center gap-2 px-3 py-2" style={{ background: "#f0f2f5" }}>
+                <div className="flex flex-1 items-center gap-2 rounded-full px-3 py-1.5" style={{ background: "#fff" }}>
+                  <span className="text-sm">😊</span>
+                  <span className="flex-1 text-[11px] text-zinc-400">Message</span>
+                  <span className="text-sm">📎</span>
+                </div>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ background: "#00a884" }}>
+                  <span className="text-sm">🎤</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* action buttons */}
+        <div className="flex w-full gap-3">
+          <button
+            onClick={onClose}
+            disabled={sending}
+            className="flex h-11 flex-1 items-center justify-center rounded-xl border border-zinc-700 text-sm text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={sending}
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-semibold text-white hover:bg-green-500 transition-colors disabled:opacity-50"
+          >
+            <span>💬</span>
+            {sending ? "Sending…" : "Send Now"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function EmployeeDetailPage() {
@@ -465,6 +633,7 @@ export default function EmployeeDetailPage() {
   const [sending, setSending] = useState(false);
   const [sendMenuOpen, setSendMenuOpen] = useState(false);
   const [sendingCard, setSendingCard] = useState(false);
+  const [cardPreviewOpen, setCardPreviewOpen] = useState(false);
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<Tab>("info");
 
@@ -510,7 +679,11 @@ export default function EmployeeDetailPage() {
     }
   }
 
-  async function handleSendCard() {
+  function handleSendCard() {
+    setCardPreviewOpen(true);
+  }
+
+  async function confirmSendCard() {
     setSendingCard(true);
     const tid = toast.loading("Sending card to employee…");
     try {
@@ -518,6 +691,7 @@ export default function EmployeeDetailPage() {
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? "Failed to send", { id: tid }); return; }
       toast.success("Card sent to employee's WhatsApp!", { id: tid });
+      setCardPreviewOpen(false);
     } catch {
       toast.error("Network error", { id: tid });
     } finally {
@@ -554,6 +728,16 @@ export default function EmployeeDetailPage() {
 
   return (
     <div>
+      {/* WhatsApp preview modal */}
+      {cardPreviewOpen && emp && (
+        <SendCardPreviewModal
+          emp={emp}
+          onClose={() => setCardPreviewOpen(false)}
+          onConfirm={confirmSendCard}
+          sending={sendingCard}
+        />
+      )}
+
       {/* header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">

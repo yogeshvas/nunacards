@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin, requireSession } from "@/lib/session";
 import { saveUpload } from "@/lib/upload";
+import { invalidateCardImage } from "@/lib/cardImage";
 
 // ── GET /api/employees/[id] ───────────────────────────────────────────────────
 
@@ -63,6 +64,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       profileImage = await saveUpload(imageFile);
     }
 
+    const cardFieldChanged =
+      (name && name !== existing.name) ||
+      (designation !== null && (designation || null) !== existing.designation) ||
+      (phone && phone !== existing.phone) ||
+      (countryCode && countryCode !== existing.countryCode) ||
+      (email !== null && (email || null) !== existing.email) ||
+      (imageFile && imageFile.size > 0);
+
     const employee = await prisma.user.update({
       where: { id },
       data: {
@@ -74,6 +83,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(phone       && { phone }),
         ...(labelsRaw   && { labels: JSON.parse(labelsRaw) }),
         profileImage,
+        ...(cardFieldChanged && { cardImageUrl: null }),
       },
     });
 
