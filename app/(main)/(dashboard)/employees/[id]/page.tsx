@@ -131,7 +131,7 @@ function InfoTab({ emp }: { emp: Employee }) {
         <div className="px-6 py-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600 mb-4">Card</p>
           <div className="space-y-4">
-            <InfoRow icon={<QrCode className="h-4 w-4 text-zinc-500"/>} label="Card URL">/card/{emp.slug}</InfoRow>
+            <InfoRow icon={<QrCode className="h-4 w-4 text-zinc-500"/>} label="Card URL">/public/cards/{emp.slug}</InfoRow>
             <InfoRow icon={<Calendar className="h-4 w-4 text-zinc-500"/>} label="Added">
               {new Date(emp.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})}
             </InfoRow>

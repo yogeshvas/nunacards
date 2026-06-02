@@ -168,7 +168,7 @@ export default function PortalPage() {
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span className="inline-flex items-center rounded-md bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">{emp.employeeCode}</span>
                   <a
-                    href={`/card/${emp.slug}`}
+                    href={`/public/cards/${emp.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
