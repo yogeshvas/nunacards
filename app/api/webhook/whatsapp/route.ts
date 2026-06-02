@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/db";
 import { sendWhatsAppCard } from "@/lib/aisensy";
@@ -145,8 +145,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  // Fire card + log async — respond 200 immediately
-  (async () => {
+  after(async () => {
     try {
       const cardImageUrl = await getOrGenerateCardImage(employee.id);
       await sendWhatsAppCard({
@@ -160,20 +159,19 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[webhook/whatsapp] sendWhatsAppCard error:", err);
     }
-  })();
 
-  prisma.lead.create({
-    data: {
-      name: visitorName || "Unknown",
-      phoneNumber: leadPhone,
-      countryCode: leadCountryCode || "+",
-      scannedEmpId: employee.id,
-    },
-  }).catch(() => {});
-
-  prisma.scanLog
-    .create({ data: { employeeId: employee.id } })
-    .catch(() => {});
+    await Promise.allSettled([
+      prisma.lead.create({
+        data: {
+          name: visitorName || "Unknown",
+          phoneNumber: leadPhone,
+          countryCode: leadCountryCode || "+",
+          scannedEmpId: employee.id,
+        },
+      }),
+      prisma.scanLog.create({ data: { employeeId: employee.id } }),
+    ]);
+  });
 
   return NextResponse.json({ received: true });
 }
