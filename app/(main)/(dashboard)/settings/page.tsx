@@ -13,8 +13,8 @@ import { DESIGNATIONS } from "@/data/constants";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
-type Label    = { key: string; value: string };
-type OrgData  = { id: string; name: string; slug: string; logo: string | null; plan: "BASIC" | "PRO"; planExpiresAt: string | null };
+type Label = { key: string; value: string };
+type OrgData = { id: string; name: string; slug: string; logo: string | null; plan: "BASIC" | "PRO"; planExpiresAt: string | null };
 type AdminData = {
   id: string; name: string; email: string | null; designation: string | null;
   phone: string; countryCode: string; country: string;
@@ -28,11 +28,11 @@ type Tab = "organization" | "profile" | "security" | "danger";
 
 function parseDevice(ua: string | null): string {
   if (!ua) return "Unknown device";
-  if (/iPhone|iPad|iOS/i.test(ua))  return "iPhone / iPad";
-  if (/Android/i.test(ua))          return "Android";
-  if (/Windows/i.test(ua))          return "Windows";
-  if (/Mac/i.test(ua))              return "Mac";
-  if (/Linux/i.test(ua))            return "Linux";
+  if (/iPhone|iPad|iOS/i.test(ua)) return "iPhone / iPad";
+  if (/Android/i.test(ua)) return "Android";
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/Mac/i.test(ua)) return "Mac";
+  if (/Linux/i.test(ua)) return "Linux";
   return "Unknown device";
 }
 
@@ -63,10 +63,10 @@ function SectionTitle({ title, sub }: { title: string; sub: string }) {
 // ── Organization section ──────────────────────────────────────────────────────
 
 function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) => void }) {
-  const [name, setName]         = useState(org.name);
-  const [logo, setLogo]         = useState<string | null>(org.logo);
+  const [name, setName] = useState(org.name);
+  const [logo, setLogo] = useState<string | null>(org.logo);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [saving, setSaving]     = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function applyLogo(file: File) {
@@ -133,12 +133,12 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
                 className="flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-zinc-700 bg-zinc-950 hover:border-zinc-500 transition-colors overflow-hidden"
               >
                 {logo
-                  ? <img src={logo} alt="logo" className="h-full w-full object-cover"/>
-                  : <Upload className="h-5 w-5 text-zinc-600"/>
+                  ? <img src={logo} alt="logo" className="h-full w-full object-cover" />
+                  : <Upload className="h-5 w-5 text-zinc-600" />
                 }
               </div>
               <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) applyLogo(f); }}/>
+                onChange={e => { const f = e.target.files?.[0]; if (f) applyLogo(f); }} />
               <div>
                 <p className="text-sm text-zinc-300">Click to upload your logo</p>
                 <p className="text-xs text-zinc-600 mt-0.5">PNG, JPG up to 4MB</p>
@@ -147,11 +147,11 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
           </div>
 
           <Field label="Organization name">
-            <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} required/>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} required />
           </Field>
 
           <Field label="Organization slug">
-            <input type="text" value={org.slug} disabled className={`${inputCls} opacity-40 cursor-not-allowed`}/>
+            <input type="text" value={org.slug} disabled className={`${inputCls} opacity-40 cursor-not-allowed`} />
           </Field>
 
           <button type="submit" disabled={saving} className="h-10 rounded-lg bg-white px-5 text-sm font-semibold text-black hover:bg-zinc-100 transition disabled:opacity-50">
@@ -166,18 +166,18 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
 // ── My Profile section ────────────────────────────────────────────────────────
 
 function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: AdminData) => void }) {
-  const fileRef    = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const imageFileRef = useRef<File | null>(null);
-  const [saving, setSaving]           = useState(false);
-  const [profilePic, setProfilePic]   = useState<string | null>(admin.profileImage);
-  const [name, setName]               = useState(admin.name);
-  const [email, setEmail]             = useState(admin.email ?? "");
+  const [saving, setSaving] = useState(false);
+  const [profilePic, setProfilePic] = useState<string | null>(admin.profileImage);
+  const [name, setName] = useState(admin.name);
+  const [email, setEmail] = useState(admin.email ?? "");
   const [designation, setDesignation] = useState(admin.designation ?? "");
-  const [customDes, setCustomDes]     = useState(admin.designation ? !DESIGNATIONS.includes(admin.designation) : false);
+  const [customDes, setCustomDes] = useState(admin.designation ? !DESIGNATIONS.includes(admin.designation) : false);
   const [countryCode, setCountryCode] = useState(admin.countryCode);
-  const [country, setCountry]         = useState(admin.country);
-  const [phone, setPhone]             = useState(admin.phone);
-  const [labels, setLabels]           = useState<Label[]>(Array.isArray(admin.labels) ? admin.labels : []);
+  const [country, setCountry] = useState(admin.country);
+  const [phone, setPhone] = useState(admin.phone);
+  const [labels, setLabels] = useState<Label[]>(Array.isArray(admin.labels) ? admin.labels : []);
 
   function applyFile(file: File) {
     if (!file.type.startsWith("image/")) return;
@@ -221,10 +221,10 @@ function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: A
           className="flex cursor-pointer items-center gap-5 rounded-xl border border-dashed border-zinc-700 bg-zinc-950 p-4 hover:border-zinc-500 transition-colors"
         >
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) applyFile(f); }}/>
+            onChange={e => { const f = e.target.files?.[0]; if (f) applyFile(f); }} />
           {profilePic
-            ? <img src={profilePic} alt="profile" className="h-14 w-14 rounded-full object-cover ring-2 ring-zinc-700 shrink-0"/>
-            : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-zinc-800"><Upload className="h-5 w-5 text-zinc-500"/></div>
+            ? <img src={profilePic} alt="profile" className="h-14 w-14 rounded-full object-cover ring-2 ring-zinc-700 shrink-0" />
+            : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-zinc-800"><Upload className="h-5 w-5 text-zinc-500" /></div>
           }
           <div>
             <p className="text-sm font-medium text-white">{profilePic ? "Photo uploaded" : "Upload profile photo"}</p>
@@ -234,20 +234,20 @@ function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: A
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Full name">
-            <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} required/>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} required />
           </Field>
           <Field label="Email">
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputCls}/>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} />
           </Field>
         </div>
 
         <Field label="Designation">
           {customDes ? (
             <div className="flex gap-2">
-              <input type="text" value={designation} onChange={e => setDesignation(e.target.value)} className={`${inputCls} flex-1`} placeholder="e.g. Head of Growth" autoFocus/>
+              <input type="text" value={designation} onChange={e => setDesignation(e.target.value)} className={`${inputCls} flex-1`} placeholder="e.g. Head of Growth" autoFocus />
               <button type="button" onClick={() => { setCustomDes(false); setDesignation(""); }}
                 className="flex shrink-0 items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-400 hover:text-white transition">
-                <ArrowLeft className="h-3.5 w-3.5"/> List
+                <ArrowLeft className="h-3.5 w-3.5" /> List
               </button>
             </div>
           ) : (
@@ -259,15 +259,15 @@ function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: A
                 {DESIGNATIONS.map(d => <option key={d} value={d}>{d}</option>)}
                 <option value="__other__">✏️ Add other…</option>
               </select>
-              <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </div>
           )}
         </Field>
 
         <Field label="Phone number">
           <div className="flex gap-2">
-            <CountryCodeDropdown value={countryCode} onChange={(c, cn) => { setCountryCode(c); setCountry(cn); }}/>
-            <input type="tel" placeholder="98765 43210" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ""))} className={`${inputCls} flex-1`}/>
+            <CountryCodeDropdown value={countryCode} onChange={(c, cn) => { setCountryCode(c); setCountry(cn); }} />
+            <input type="tel" placeholder="98765 43210" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ""))} className={`${inputCls} flex-1`} />
           </div>
         </Field>
 
@@ -276,11 +276,11 @@ function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: A
           <div className="space-y-2">
             {labels.map((lbl, i) => (
               <div key={i} className="flex items-center gap-2">
-                <input type="text" placeholder="Label" value={lbl.key} onChange={e => setLabels(l => l.map((x, idx) => idx === i ? { ...x, key: e.target.value } : x))} className={`${inputCls} flex-1`}/>
-                <input type="text" placeholder="Value" value={lbl.value} onChange={e => setLabels(l => l.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x))} className={`${inputCls} flex-1`}/>
+                <input type="text" placeholder="Label" value={lbl.key} onChange={e => setLabels(l => l.map((x, idx) => idx === i ? { ...x, key: e.target.value } : x))} className={`${inputCls} flex-1`} />
+                <input type="text" placeholder="Value" value={lbl.value} onChange={e => setLabels(l => l.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x))} className={`${inputCls} flex-1`} />
                 <button type="button" onClick={() => setLabels(l => l.filter((_, idx) => idx !== i))}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-800 text-zinc-600 hover:border-red-500/40 hover:text-red-400 transition">
-                  <X className="h-4 w-4"/>
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}
@@ -288,7 +288,7 @@ function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: A
         )}
         <button type="button" onClick={() => setLabels(l => [...l, { key: "", value: "" }])}
           className="flex items-center gap-2 text-sm text-zinc-500 hover:text-white transition">
-          <Plus className="h-4 w-4"/> Add label
+          <Plus className="h-4 w-4" /> Add label
         </button>
 
         <button type="submit" disabled={saving} className="h-10 rounded-lg bg-white px-5 text-sm font-semibold text-black hover:bg-zinc-100 transition disabled:opacity-50">
@@ -302,14 +302,14 @@ function ProfileSection({ admin, onUpdate }: { admin: AdminData; onUpdate: (a: A
 // ── Security section ──────────────────────────────────────────────────────────
 
 function SecuritySection() {
-  const [current, setCurrent]       = useState("");
-  const [newPw, setNewPw]           = useState("");
-  const [confirmPw, setConfirmPw]   = useState("");
+  const [current, setCurrent] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew]       = useState(false);
-  const [savingPw, setSavingPw]     = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
 
-  const [sessions, setSessions]   = useState<LoginSession[]>([]);
+  const [sessions, setSessions] = useState<LoginSession[]>([]);
   const [loadingSess, setLoadingSess] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -323,7 +323,7 @@ function SecuritySection() {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (newPw !== confirmPw) { toast.error("Passwords do not match"); return; }
-    if (newPw.length < 8)   { toast.error("Password must be at least 8 characters"); return; }
+    if (newPw.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setSavingPw(true);
     const tid = toast.loading("Updating password…");
     try {
@@ -335,7 +335,7 @@ function SecuritySection() {
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? "Failed", { id: tid }); return; }
       toast.success("Password updated", { id: tid });
-      setCurrent(""); setNewPw(""); setConfirm("");
+      setCurrent(""); setNewPw(""); setConfirmPw("");
     } catch { toast.error("Network error", { id: tid }); }
     finally { setSavingPw(false); }
   }
@@ -360,22 +360,22 @@ function SecuritySection() {
         <form onSubmit={handleChangePassword} className="space-y-4">
           <Field label="Current password">
             <div className="relative">
-              <input type={showCurrent ? "text" : "password"} value={current} onChange={e => setCurrent(e.target.value)} className={`${inputCls} pr-11`} required placeholder="••••••••"/>
+              <input type={showCurrent ? "text" : "password"} value={current} onChange={e => setCurrent(e.target.value)} className={`${inputCls} pr-11`} required placeholder="••••••••" />
               <button type="button" tabIndex={-1} onClick={() => setShowCurrent(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition">
-                {showCurrent ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </Field>
           <Field label="New password">
             <div className="relative">
-              <input type={showNew ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} className={`${inputCls} pr-11`} required placeholder="Min. 8 characters"/>
+              <input type={showNew ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} className={`${inputCls} pr-11`} required placeholder="Min. 8 characters" />
               <button type="button" tabIndex={-1} onClick={() => setShowNew(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition">
-                {showNew ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </Field>
           <Field label="Confirm new password">
-            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className={inputCls} required placeholder="Repeat new password"/>
+            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className={inputCls} required placeholder="Repeat new password" />
           </Field>
           <button type="submit" disabled={savingPw} className="h-10 rounded-lg bg-white px-5 text-sm font-semibold text-black hover:bg-zinc-100 transition disabled:opacity-50">
             {savingPw ? "Updating…" : "Update Password"}
@@ -389,14 +389,14 @@ function SecuritySection() {
           <SectionTitle title="Active Sessions" sub="Devices that have signed in to your account." />
           <button onClick={handleSignOutAll} disabled={signingOut}
             className="flex items-center gap-1.5 h-9 rounded-lg border border-red-500/30 px-3 text-sm text-red-400 hover:border-red-500/60 hover:text-red-300 transition disabled:opacity-50">
-            <LogOut className="h-3.5 w-3.5"/>
+            <LogOut className="h-3.5 w-3.5" />
             {signingOut ? "Signing out…" : "Sign out all"}
           </button>
         </div>
 
         {loadingSess ? (
           <div className="space-y-3">
-            {[1, 2].map(i => <div key={i} className="h-14 rounded-xl bg-zinc-800/50 animate-pulse"/>)}
+            {[1, 2].map(i => <div key={i} className="h-14 rounded-xl bg-zinc-800/50 animate-pulse" />)}
           </div>
         ) : sessions.length === 0 ? (
           <p className="text-sm text-zinc-500">No sessions recorded yet.</p>
@@ -405,7 +405,7 @@ function SecuritySection() {
             {sessions.map(s => (
               <div key={s.id} className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-800">
-                  <Monitor className="h-4 w-4 text-zinc-400"/>
+                  <Monitor className="h-4 w-4 text-zinc-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white">{parseDevice(s.userAgent)}</p>
@@ -426,10 +426,10 @@ function SecuritySection() {
 // ── Danger Zone section ───────────────────────────────────────────────────────
 
 function DangerSection({ orgName }: { orgName: string }) {
-  const [open, setOpen]             = useState(false);
-  const [password, setPassword]     = useState("");
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [deleting, setDeleting]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleDelete(e: React.FormEvent) {
     e.preventDefault();
@@ -463,13 +463,13 @@ function DangerSection({ orgName }: { orgName: string }) {
         </div>
         <button onClick={() => setOpen(true)}
           className="flex items-center gap-1.5 h-9 rounded-lg border border-red-500/40 px-3 text-sm text-red-400 hover:bg-red-500/10 transition shrink-0 ml-4">
-          <Trash2 className="h-3.5 w-3.5"/> Delete
+          <Trash2 className="h-3.5 w-3.5" /> Delete
         </button>
       </div>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !deleting && setOpen(false)}/>
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !deleting && setOpen(false)} />
           <div className="relative z-10 w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 space-y-5">
             <div>
               <h3 className="text-lg font-semibold text-white">Delete organization</h3>
@@ -479,10 +479,10 @@ function DangerSection({ orgName }: { orgName: string }) {
             </div>
             <form onSubmit={handleDelete} className="space-y-4">
               <Field label={`Type "${orgName}" to confirm`}>
-                <input type="text" value={confirmation} onChange={e => setConfirmation(e.target.value)} className={inputCls} placeholder={orgName}/>
+                <input type="text" value={confirmation} onChange={e => setConfirmation(e.target.value)} className={inputCls} placeholder={orgName} />
               </Field>
               <Field label="Your password">
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} placeholder="Enter your password"/>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} placeholder="Enter your password" />
               </Field>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setOpen(false)} disabled={deleting}
@@ -506,14 +506,14 @@ function DangerSection({ orgName }: { orgName: string }) {
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "organization", label: "Organization", icon: Building2 },
-  { id: "profile",      label: "My Profile",   icon: User },
-  { id: "security",     label: "Security",     icon: Shield },
-  { id: "danger",       label: "Danger Zone",  icon: AlertTriangle },
+  { id: "profile", label: "My Profile", icon: User },
+  { id: "security", label: "Security", icon: Shield },
+  { id: "danger", label: "Danger Zone", icon: AlertTriangle },
 ];
 
 export default function SettingsPage() {
-  const [tab, setTab]     = useState<Tab>("organization");
-  const [org, setOrg]     = useState<OrgData | null>(null);
+  const [tab, setTab] = useState<Tab>("organization");
+  const [org, setOrg] = useState<OrgData | null>(null);
   const [admin, setAdmin] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -541,16 +541,15 @@ export default function SettingsPage() {
               const active = tab === t.id;
               return (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-medium transition-colors w-full text-left ${
-                    active
+                  className={`flex items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-medium transition-colors w-full text-left ${active
                       ? t.id === "danger"
                         ? "bg-red-500/10 text-red-400"
                         : "bg-zinc-800 text-white"
                       : t.id === "danger"
                         ? "text-red-500/60 hover:text-red-400 hover:bg-red-500/5"
                         : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-                  }`}>
-                  <Icon className="h-4 w-4 shrink-0"/>
+                    }`}>
+                  <Icon className="h-4 w-4 shrink-0" />
                   {t.label}
                 </button>
               );
@@ -562,14 +561,14 @@ export default function SettingsPage() {
         <div className="flex-1 min-w-0">
           {loading ? (
             <div className="space-y-4">
-              {[1, 2].map(i => <div key={i} className="h-40 rounded-2xl bg-zinc-800/50 animate-pulse"/>)}
+              {[1, 2].map(i => <div key={i} className="h-40 rounded-2xl bg-zinc-800/50 animate-pulse" />)}
             </div>
           ) : (
             <>
-              {tab === "organization" && org  && <OrgSection     org={org}     onUpdate={setOrg}   />}
-              {tab === "profile"      && admin && <ProfileSection admin={admin} onUpdate={setAdmin} />}
-              {tab === "security"                && <SecuritySection />}
-              {tab === "danger"       && org  && <DangerSection  orgName={org.name} />}
+              {tab === "organization" && org && <OrgSection org={org} onUpdate={setOrg} />}
+              {tab === "profile" && admin && <ProfileSection admin={admin} onUpdate={setAdmin} />}
+              {tab === "security" && <SecuritySection />}
+              {tab === "danger" && org && <DangerSection orgName={org.name} />}
             </>
           )}
         </div>
