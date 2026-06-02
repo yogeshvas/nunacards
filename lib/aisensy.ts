@@ -79,7 +79,7 @@ export async function sendWhatsAppCard({
 }) {
   const visitorFirstName = visitorName.split(" ")[0] || "there";
   const baseUrl = process.env.NEXTAUTH_URL ?? "https://yourdomain.com";
-  const cardUrl = `${baseUrl}/card/${employeeSlug}`;
+  const cardUrl = `${employeeSlug}`;
 
   // fallback image if employee has no profile photo
   const mediaUrl = profileImageUrl

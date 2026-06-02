@@ -81,7 +81,7 @@ export default function LoginPage() {
 
     function switchRole(next: "owner" | "employee") {
         setRole(next);
-        setMode(next === "employee" ? "otp" : "password");
+        setMode("otp");
         setOtpSent(false);
         setOtp("");
         setError("");
@@ -113,6 +113,7 @@ export default function LoginPage() {
                 return;
             }
 
+            fetch("/api/settings/sessions", { method: "POST" }).catch(() => {});
             toast.success("Login successful!");
             router.push("/dashboard");
         } catch {
@@ -156,6 +157,8 @@ export default function LoginPage() {
         try {
             const result = await signIn("otp", { email, otp, redirect: false });
             if (result?.error) { setError("Invalid or expired OTP. Please try again."); return; }
+
+            fetch("/api/settings/sessions", { method: "POST" }).catch(() => {});
             toast.success("Login successful!");
             router.push("/dashboard");
         } catch {

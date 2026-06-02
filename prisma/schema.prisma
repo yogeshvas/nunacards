@@ -23,14 +23,15 @@ enum UserRole {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  logo      String?
-  plan      PlanType @default(BASIC)
-  users     User[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  logo          String?
+  plan          PlanType  @default(BASIC)
+  planExpiresAt DateTime?
+  users         User[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model User {
@@ -47,17 +48,30 @@ model User {
   profileImage  String?
   cardImageUrl  String?
   labels        Json         @default("[]")
-  archived     Boolean      @default(false)
-  role         UserRole     @default(EMPLOYEE)
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id])
-  scans        ScanLog[]
-  leads        Lead[]
-  cardViews    CardView[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  archived      Boolean        @default(false)
+  tokenVersion  Int            @default(0)
+  role          UserRole       @default(EMPLOYEE)
+  orgId         String
+  organization  Organization   @relation(fields: [orgId], references: [id])
+  scans         ScanLog[]
+  leads         Lead[]
+  cardViews     CardView[]
+  loginSessions LoginSession[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([orgId])
+}
+
+model LoginSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model CardView {

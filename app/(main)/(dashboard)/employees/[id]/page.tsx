@@ -10,6 +10,7 @@ import {
   UserCheck, Calendar, PhoneCall,
   Send, ChevronDown, Download, ChevronLeft, ChevronRight, ExternalLink,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/custom/WhatsAppIcon";
 import toast from "react-hot-toast";
 import { EmployeeQR } from "@/components/custom/EmployeeQR";
 import {
@@ -254,7 +255,7 @@ function LeadsTab({ empId }: { empId: string }) {
                   title="Open in WhatsApp"
                   className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600/10 text-green-500 hover:bg-green-600/20 transition-colors"
                 >
-                  <span className="text-sm">💬</span>
+                  <WhatsAppIcon className="h-4 w-4" />
                 </a>
                 <p className="text-xs text-zinc-500 w-16 text-right">
                   {new Date(lead.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}

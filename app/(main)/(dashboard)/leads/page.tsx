@@ -6,6 +6,7 @@ import {
   Users, Target, Download, Search, X,
   ChevronLeft, ChevronRight, Filter, Calendar,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/custom/WhatsAppIcon";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -391,7 +392,7 @@ export default function LeadsPage() {
                       title={`Chat with ${lead.name} on WhatsApp`}
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600/10 text-green-500 hover:bg-green-600/20 transition-colors"
                     >
-                      <span className="text-sm">💬</span>
+                      <WhatsAppIcon className="h-4 w-4" />
                     </a>
                   </div>
                 </div>

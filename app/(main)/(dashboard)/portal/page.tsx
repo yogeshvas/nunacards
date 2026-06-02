@@ -11,6 +11,7 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { EmployeeQR } from "@/components/custom/EmployeeQR";
+import { WhatsAppIcon } from "@/components/custom/WhatsAppIcon";
 import toast from "react-hot-toast";
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -280,7 +281,7 @@ export default function PortalPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
                         className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600/10 text-green-500 hover:bg-green-600/20 transition-colors">
-                        <span className="text-sm">💬</span>
+                        <WhatsAppIcon className="h-4 w-4" />
                       </a>
                       <p className="text-xs text-zinc-500 w-16 text-right">
                         {new Date(lead.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}

@@ -1,9 +1,26 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
+const AUTH_ROUTES = ["/login", "/signup"];
+const PROTECTED_ROUTES = ["/dashboard", "/employees", "/leads", "/settings", "/portal"];
+
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = req.nextUrl;
+
+  const isAuthRoute = AUTH_ROUTES.some(r => pathname.startsWith(r));
+  const isProtectedRoute = PROTECTED_ROUTES.some(r => pathname.startsWith(r));
+
+  // Not logged in → block protected routes
+  if (!token && isProtectedRoute) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // Logged in → block auth routes, redirect to their home
+  if (token && isAuthRoute) {
+    const role = (token.role as string) ?? "EMPLOYEE";
+    return NextResponse.redirect(new URL(role === "ADMIN" ? "/dashboard" : "/portal", req.url));
+  }
 
   if (!token) return NextResponse.next();
 
@@ -27,6 +44,8 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/login/:path*",
+    "/signup/:path*",
     "/dashboard/:path*",
     "/employees/:path*",
     "/leads/:path*",
