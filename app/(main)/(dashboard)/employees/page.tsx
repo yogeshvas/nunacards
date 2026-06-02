@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Users, Mail, Phone, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Users, Mail, Phone, Pencil, Archive, ArchiveRestore, CreditCard } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Employee = {
@@ -140,10 +140,59 @@ function EmployeeGrid({
   );
 }
 
+function AdminCardSection({ adminCard }: { adminCard: Employee | null }) {
+  if (!adminCard) return null;
+  const isSetUp = !!adminCard.designation;
+
+  return (
+    <div className="mb-8">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-600">My Card</p>
+
+      {isSetUp ? (
+        <div className="group relative rounded-2xl border border-indigo-500/20 bg-zinc-900 ring-1 ring-indigo-500/10 transition hover:border-indigo-500/40">
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            <span className="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-0.5 text-[11px] font-medium text-indigo-400">
+              You
+            </span>
+            <Link
+              href={`/employees/${adminCard.id}/edit`}
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 ring-1 ring-zinc-700 hover:bg-zinc-700 hover:text-white transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <Link href={`/employees/${adminCard.id}`} className="flex flex-col gap-4 p-5">
+            <CardBody emp={adminCard} archived={false} />
+          </Link>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/50 p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10">
+              <CreditCard className="h-5 w-5 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Create your digital card</p>
+              <p className="mt-0.5 text-xs text-zinc-500">Set up your own card so you can send it to yourself and your contacts.</p>
+            </div>
+          </div>
+          <Link
+            href={`/employees/${adminCard.id}/edit`}
+            className="shrink-0 flex items-center gap-2 h-9 rounded-lg bg-white px-4 text-sm font-semibold text-black transition hover:bg-zinc-100 active:scale-[0.98]"
+          >
+            Create Card
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EmployeesPage() {
   const [tab, setTab] = useState<Tab>("active");
   const [active, setActive] = useState<Employee[]>([]);
   const [archived, setArchived] = useState<Employee[]>([]);
+  const [adminCard, setAdminCard] = useState<Employee | null>(null);
   const [loadingActive, setLoadingActive] = useState(true);
   const [loadingArchived, setLoadingArchived] = useState(false);
   const [fetchedArchived, setFetchedArchived] = useState(false);
@@ -151,7 +200,10 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetch("/api/employees")
       .then(r => r.json())
-      .then(d => setActive(d.employees ?? []))
+      .then(d => {
+        setActive(d.employees ?? []);
+        setAdminCard(d.adminCard ?? null);
+      })
       .finally(() => setLoadingActive(false));
   }, []);
 
@@ -243,6 +295,8 @@ export default function EmployeesPage() {
           ))}
         </div>
       )}
+
+      {!loading && tab === "active" && <AdminCardSection adminCard={adminCard} />}
 
       {!loading && (
         <EmployeeGrid

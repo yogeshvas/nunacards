@@ -15,11 +15,15 @@ import {
     ChevronDown,
 } from "lucide-react";
 
-const NAV = [
+const ADMIN_NAV = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Employees", href: "/employees", icon: Users },
     { label: "Leads", href: "/leads", icon: Contact },
     { label: "Settings", href: "/settings", icon: Settings },
+];
+
+const EMPLOYEE_NAV = [
+    { label: "My Card", href: "/portal", icon: LayoutDashboard },
 ];
 
 function avatarUrl(name?: string | null) {
@@ -30,6 +34,8 @@ function avatarUrl(name?: string | null) {
 export default function Header() {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const isEmployee = session?.user?.role === "EMPLOYEE";
+    const NAV = isEmployee ? EMPLOYEE_NAV : ADMIN_NAV;
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 

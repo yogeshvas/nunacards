@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   ArrowLeft, Mail, Phone, Tag, QrCode,
@@ -627,6 +628,8 @@ function SendCardPreviewModal({ emp, onClose, onConfirm, sending }: {
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { data: session } = useSession();
+  const isSelf = session?.user?.id === id;
   const [emp, setEmp] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState(false);
@@ -792,10 +795,12 @@ export default function EmployeeDetailPage() {
             className="flex items-center gap-1.5 h-9 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-300 transition hover:border-zinc-500 hover:text-white">
             <Pencil className="h-3.5 w-3.5"/> Edit
           </Link>
-          <button onClick={handleArchive} disabled={archiving}
-            className="flex items-center gap-1.5 h-9 rounded-lg border border-amber-500/30 px-3 text-sm text-amber-400 transition hover:border-amber-500/60 hover:text-amber-300 disabled:opacity-50">
-            <Archive className="h-3.5 w-3.5"/> {archiving ? "Archiving…" : "Archive"}
-          </button>
+          {!isSelf && (
+            <button onClick={handleArchive} disabled={archiving}
+              className="flex items-center gap-1.5 h-9 rounded-lg border border-amber-500/30 px-3 text-sm text-amber-400 transition hover:border-amber-500/60 hover:text-amber-300 disabled:opacity-50">
+              <Archive className="h-3.5 w-3.5"/> {archiving ? "Archiving…" : "Archive"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -810,7 +815,14 @@ export default function EmployeeDetailPage() {
               : <img src={`https://api.dicebear.com/10.x/micah/svg?seed=${encodeURIComponent(emp.name)}`} alt={emp.name} className="h-16 w-16 shrink-0 rounded-full bg-zinc-800 ring-2 ring-zinc-700"/>
             }
             <div>
-              <h2 className="text-xl font-bold text-white">{emp.name}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-white">{emp.name}</h2>
+                {isSelf && (
+                  <span className="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-400">
+                    You
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-zinc-400">{emp.designation ?? "—"}</p>
               <span className="mt-1.5 inline-flex items-center rounded-md bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">{emp.employeeCode}</span>
             </div>

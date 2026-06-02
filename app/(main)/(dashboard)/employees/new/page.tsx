@@ -193,7 +193,7 @@ function CardScreen({
           <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">
             Scan to connect
           </p>
-          <EmployeeQR employeeCode={employeeCode || "EMP-XXXXX"} size={88}/>
+          <EmployeeQR employeeCode={employeeCode || "EMP-XXXXX"} size={88} />
         </div>
       </div>
     </div>
@@ -313,13 +313,12 @@ export default function NewEmployeePage() {
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            className={`relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-8 transition-colors ${
-              dragging
-                ? "border-indigo-500 bg-indigo-500/5"
-                : profilePic
+            className={`relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-8 transition-colors ${dragging
+              ? "border-indigo-500 bg-indigo-500/5"
+              : profilePic
                 ? "border-zinc-700 bg-zinc-950"
                 : "border-zinc-800 bg-zinc-950 hover:border-zinc-600 hover:bg-zinc-900"
-            }`}
+              }`}
           >
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 

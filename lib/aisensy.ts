@@ -1,13 +1,39 @@
 const BASE_URL = "https://backend.api-wa.co/campaign";
 
+function log(level: "info" | "error", msg: string, data?: unknown) {
+  const ts = new Date().toISOString();
+  if (level === "error") {
+    console.error(`[WhatsApp][${ts}] ${msg}`, data ?? "");
+  } else {
+    console.log(`[WhatsApp][${ts}] ${msg}`, data ?? "");
+  }
+}
+
 async function aiSensyPost(payload: Record<string, unknown>) {
+  const { campaignName, destination, templateParams } = payload as {
+    campaignName: string;
+    destination: string;
+    templateParams: string[];
+  };
+
+  log("info", `Sending → campaign=${campaignName} destination=${destination}`, { templateParams });
+
   const res = await fetch(`${BASE_URL}/${process.env.AISENSY_USERNAME}/api/v2`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ apiKey: process.env.AISENSY_API_KEY, ...payload }),
   });
-  if (!res.ok) throw new Error(`AiSensy ${res.status}: ${await res.text()}`);
-  return res.json();
+
+  const responseText = await res.text();
+
+  if (!res.ok) {
+    log("error", `Failed → campaign=${campaignName} destination=${destination} status=${res.status}`, responseText);
+    throw new Error(`AiSensy ${res.status}: ${responseText}`);
+  }
+
+  const json = JSON.parse(responseText);
+  log("info", `Sent   → campaign=${campaignName} destination=${destination}`, json);
+  return json;
 }
 
 export async function sendWhatsAppQr({

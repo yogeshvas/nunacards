@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/db";
 import { sendWhatsAppCard } from "@/lib/aisensy";
+import { getOrGenerateCardImage } from "@/lib/cardImage";
 
 // ── signature verification ────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ function extractName(
   return "";
 }
 
-const CODE_RE = /\bEMP-[A-Z0-9]{3,10}\b/i;
+const CODE_RE = /\b[A-Z0-9]{2,6}-[A-Z0-9]{3,10}\b/i;
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
 
   const employee = await prisma.user.findFirst({
     where: { employeeCode, archived: false },
-    select: { id: true, name: true, designation: true, profileImage: true, slug: true },
+    select: { id: true, name: true, designation: true, slug: true },
   });
 
   if (!employee) {
@@ -145,14 +146,21 @@ export async function POST(req: NextRequest) {
   }
 
   // Fire card + log async — respond 200 immediately
-  sendWhatsAppCard({
-    visitorPhone: senderPhone,
-    visitorName: visitorName || "there",
-    employeeName: employee.name,
-    employeeDesignation: employee.designation ?? "",
-    employeeSlug: employee.slug,
-    profileImageUrl: employee.profileImage,
-  }).catch(err => console.error("[webhook/whatsapp] sendWhatsAppCard error:", err));
+  (async () => {
+    try {
+      const cardImageUrl = await getOrGenerateCardImage(employee.id);
+      await sendWhatsAppCard({
+        visitorPhone: senderPhone,
+        visitorName: visitorName || "there",
+        employeeName: employee.name,
+        employeeDesignation: employee.designation ?? "",
+        employeeSlug: employee.slug,
+        profileImageUrl: cardImageUrl,
+      });
+    } catch (err) {
+      console.error("[webhook/whatsapp] sendWhatsAppCard error:", err);
+    }
+  })();
 
   prisma.lead.create({
     data: {

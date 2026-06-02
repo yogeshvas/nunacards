@@ -15,26 +15,36 @@ export async function GET(req: NextRequest) {
     const session = await requireSession();
     const showArchived = req.nextUrl.searchParams.get("archived") === "true";
 
+    const cardSelect = {
+      id: true,
+      name: true,
+      email: true,
+      designation: true,
+      phone: true,
+      countryCode: true,
+      country: true,
+      employeeCode: true,
+      profileImage: true,
+      labels: true,
+      slug: true,
+      createdAt: true,
+    };
+
     const employees = await prisma.user.findMany({
       where: { orgId: session.user.orgId, role: "EMPLOYEE", archived: showArchived },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        designation: true,
-        phone: true,
-        countryCode: true,
-        country: true,
-        employeeCode: true,
-        profileImage: true,
-        labels: true,
-        slug: true,
-        createdAt: true,
-      },
+      select: cardSelect,
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ employees });
+    // Include the admin's own card so they can send it to themselves
+    const adminCard = showArchived
+      ? null
+      : await prisma.user.findFirst({
+          where: { id: session.user.id, orgId: session.user.orgId },
+          select: cardSelect,
+        });
+
+    return NextResponse.json({ employees, adminCard });
   } catch (err: any) {
     if (err.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     console.error("[GET /api/employees]", err);
