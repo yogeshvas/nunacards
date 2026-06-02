@@ -26,7 +26,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const waLink = employeeWaLink(employee.employeeCode);
     const imageUrl = qrImageUrl(waLink);
 
-    const destination = `${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
+    const destination = `+${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
+
+    console.log("[send-qr] phone debug", {
+      raw_countryCode: employee.countryCode,
+      raw_phone: employee.phone,
+      destination,
+    });
 
     const results: Record<string, string> = {};
 
