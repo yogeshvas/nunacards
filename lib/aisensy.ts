@@ -16,12 +16,14 @@ async function aiSensyPost(payload: Record<string, unknown>) {
     templateParams: string[];
   };
 
+  const body = JSON.stringify({ apiKey: process.env.AISENSY_API_KEY, ...payload });
   log("info", `Sending → campaign=${campaignName} destination=${destination}`, { templateParams });
+  console.log("[AiSensy] full payload →", body);
 
   const res = await fetch(`${BASE_URL}/${process.env.AISENSY_USERNAME}/api/v2`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ apiKey: process.env.AISENSY_API_KEY, ...payload }),
+    body,
   });
 
   const responseText = await res.text();
