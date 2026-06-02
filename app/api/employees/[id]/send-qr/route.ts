@@ -26,8 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const waLink = employeeWaLink(employee.employeeCode);
     const imageUrl = qrImageUrl(waLink);
 
-    // strip leading + from country code for AiSensy destination
-    const destination = `${employee.countryCode.replace(/^\+/, "")}${employee.phone}`;
+    const destination = `${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
 
     const results: Record<string, string> = {};
 

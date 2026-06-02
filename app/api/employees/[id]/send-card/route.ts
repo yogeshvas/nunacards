@@ -25,7 +25,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     // get cached card image or generate + cache it now
     const cardImageUrl = await getOrGenerateCardImage(id);
 
-    const destination = `${employee.countryCode.replace(/^\+/, "")}${employee.phone}`;
+    const destination = `${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
 
     await sendWhatsAppCard({
       visitorPhone: destination,
