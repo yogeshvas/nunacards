@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 export function OtpInput({
     value,
     onChange,
@@ -31,23 +33,21 @@ export function OtpInput({
     }
 
     return (
-        <div className= "flex gap-3 justify-center" >
-        {
-            Array.from({ length: 6 }).map((_, i) => (
+        <div className="flex gap-3 justify-center">
+            {Array.from({ length: 6 }).map((_, i) => (
                 <input
-                    key= { i }
-                    ref = {(el) => { inputs.current[i] = el; }}
-    type = "text"
-    inputMode = "numeric"
-    maxLength = { 1}
-    value = { digits[i] === " " ? "" : digits[i] }
-    onChange = {(e) => handleChange(i, e)
-}
-onKeyDown = {(e) => handleKeyDown(i, e)}
-onPaste = { handlePaste }
-className = "h-12 w-12 rounded-xl border border-zinc-800 bg-zinc-950 text-center text-lg font-semibold text-white outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 caret-transparent"
-    />
+                    key={i}
+                    ref={(el) => { inputs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digits[i] === " " ? "" : digits[i]}
+                    onChange={(e) => handleChange(i, e)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    onPaste={handlePaste}
+                    className="h-12 w-12 rounded-xl border border-zinc-800 bg-zinc-950 text-center text-lg font-semibold text-white outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 caret-transparent"
+                />
             ))}
-</div>
+        </div>
     );
 }
