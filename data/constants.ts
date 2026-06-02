@@ -49,6 +49,7 @@ export const COUNTRIES = [
     { name: "Sri Lanka", code: "+94", iso: "LK" },
     { name: "Sweden", code: "+46", iso: "SE" },
     { name: "Switzerland", code: "+41", iso: "CH" },
+    { name: "Tanzania", code: "+255", iso: "TZ" },
     { name: "Thailand", code: "+66", iso: "TH" },
     { name: "Turkey", code: "+90", iso: "TR" },
     { name: "Ukraine", code: "+380", iso: "UA" },
@@ -56,6 +57,7 @@ export const COUNTRIES = [
     { name: "United Kingdom", code: "+44", iso: "GB" },
     { name: "United States", code: "+1", iso: "US" },
     { name: "Vietnam", code: "+84", iso: "VN" },
+    { name: "Zambia", code: "+260", iso: "ZM" },
 ];
 
 export const features = [
