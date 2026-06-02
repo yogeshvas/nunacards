@@ -67,7 +67,8 @@ function OtpInput({
 export default function LoginPage() {
     const router = useRouter();
 
-    const [mode, setMode] = useState<"password" | "otp">("password");
+    const [role, setRole] = useState<"owner" | "employee">("owner");
+    const [mode, setMode] = useState<"password" | "otp">("otp");
     const [otpSent, setOtpSent] = useState(false);
 
     const [email, setEmail] = useState("");
@@ -77,6 +78,14 @@ export default function LoginPage() {
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    function switchRole(next: "owner" | "employee") {
+        setRole(next);
+        setMode("otp");
+        setOtpSent(false);
+        setOtp("");
+        setError("");
+    }
 
     function switchMode(next: "password" | "otp") {
         setMode(next);
@@ -95,6 +104,16 @@ export default function LoginPage() {
             const result = await signIn("credentials", { email, password, redirect: false });
             if (result?.error) { setError("Invalid email or password."); return; }
 
+            // Verify the logged-in user is actually an owner
+            const { getSession } = await import("next-auth/react");
+            const session = await getSession();
+            if (session?.user?.role !== "ADMIN") {
+                setError("You're not an owner. Please log in as an Employee.");
+                await import("next-auth/react").then(m => m.signOut({ redirect: false }));
+                return;
+            }
+
+            fetch("/api/settings/sessions", { method: "POST" }).catch(() => {});
             toast.success("Login successful!");
             router.push("/dashboard");
         } catch {
@@ -114,7 +133,7 @@ export default function LoginPage() {
             const res = await fetch("/api/auth/otp/send-login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, role }),
             });
             const data = await res.json();
             if (!res.ok) { setError(data.error ?? "Failed to send OTP"); return; }
@@ -138,6 +157,8 @@ export default function LoginPage() {
         try {
             const result = await signIn("otp", { email, otp, redirect: false });
             if (result?.error) { setError("Invalid or expired OTP. Please try again."); return; }
+
+            fetch("/api/settings/sessions", { method: "POST" }).catch(() => {});
             toast.success("Login successful!");
             router.push("/dashboard");
         } catch {
@@ -202,36 +223,38 @@ export default function LoginPage() {
                             </button>
                         )}
 
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-bold tracking-tight">
-                                {otpSent ? "Check your email" : "Sign in"}
-                            </h2>
-                            <p className="mt-1.5 text-sm text-zinc-400">
-                                {otpSent
-                                    ? <>We sent a 6-digit code to <span className="font-medium text-white">{email}</span>.</>
-                                    : "Access your NunaCards dashboard."}
-                            </p>
-                        </div>
-
-                        {/* mode toggle — hidden once OTP is sent */}
+                        {/* role selector */}
                         {!otpSent && (
                             <div className="mb-6 flex rounded-xl bg-zinc-950 p-1">
                                 <button
                                     type="button"
-                                    onClick={() => switchMode("password")}
-                                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${mode === "password" ? "bg-white text-black" : "text-zinc-400 hover:text-zinc-200"}`}
+                                    onClick={() => switchRole("owner")}
+                                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${role === "owner" ? "bg-white text-black" : "text-zinc-400 hover:text-zinc-200"}`}
                                 >
-                                    Password
+                                    Owner
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => switchMode("otp")}
-                                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${mode === "otp" ? "bg-white text-black" : "text-zinc-400 hover:text-zinc-200"}`}
+                                    onClick={() => switchRole("employee")}
+                                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${role === "employee" ? "bg-white text-black" : "text-zinc-400 hover:text-zinc-200"}`}
                                 >
-                                    OTP
+                                    Employee
                                 </button>
                             </div>
                         )}
+
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold tracking-tight">
+                                {otpSent ? "Check your email" : role === "employee" ? "Employee sign in" : "Sign in"}
+                            </h2>
+                            <p className="mt-1.5 text-sm text-zinc-400">
+                                {otpSent
+                                    ? <>We sent a 6-digit code to <span className="font-medium text-white">{email}</span>.</>
+                                    : role === "employee"
+                                    ? "Sign in to view your card analytics."
+                                    : "Access your NunaCards dashboard."}
+                            </p>
+                        </div>
 
                         {/* ── password form ── */}
                         {mode === "password" && !otpSent && (
@@ -273,6 +296,12 @@ export default function LoginPage() {
                                 <button type="submit" disabled={loading} className={submitCls}>
                                     {loading ? "Signing in…" : "Sign in →"}
                                 </button>
+
+                                <p className="text-center text-sm text-zinc-500">
+                                    <button type="button" onClick={() => switchMode("otp")} className="font-medium text-white hover:underline">
+                                        Use OTP to login
+                                    </button>
+                                </p>
                             </form>
                         )}
 
@@ -295,6 +324,14 @@ export default function LoginPage() {
                                 <button type="submit" disabled={loading} className={submitCls}>
                                     {loading ? "Sending code…" : "Send verification code →"}
                                 </button>
+
+                                {role === "owner" && (
+                                    <p className="text-center text-sm text-zinc-500">
+                                        <button type="button" onClick={() => switchMode("password")} className="font-medium text-white hover:underline">
+                                            Use password to login
+                                        </button>
+                                    </p>
+                                )}
                             </form>
                         )}
 
