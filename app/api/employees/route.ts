@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireAdmin, requireSession } from "@/lib/session";
+import { requireAdmin, requireSession, getOrgPlan } from "@/lib/session";
 import { saveUpload } from "@/lib/upload";
 import { randomUUID } from "crypto";
 
@@ -58,6 +58,14 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireAdmin();
 
+    const { isPro } = await getOrgPlan(session.user.orgId);
+    if (!isPro) {
+      return NextResponse.json(
+        { error: "UPGRADE_REQUIRED", message: "Upgrade to PRO to add team members." },
+        { status: 403 }
+      );
+    }
+
     const formData = await req.formData();
     const name        = formData.get("name") as string;
     const email       = (formData.get("email") as string | null) || null;
@@ -84,7 +92,12 @@ export async function POST(req: NextRequest) {
       profileImage = await saveUpload(imageFile);
     }
 
-    const labels = labelsRaw ? JSON.parse(labelsRaw) : [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let labels: any[] = [];
+    if (labelsRaw) {
+      try { labels = JSON.parse(labelsRaw); }
+      catch { return NextResponse.json({ error: "Invalid labels format" }, { status: 400 }); }
+    }
     const slug = `${slugify(name)}-${randomUUID().slice(0, 6)}`;
 
     const employee = await prisma.user.create({

@@ -36,6 +36,7 @@ export const authOptions: AuthOptions = {
           name: user.name,
           role: user.role,
           orgId: user.orgId,
+          tokenVersion: user.tokenVersion,
         };
       },
     }),
@@ -77,6 +78,7 @@ export const authOptions: AuthOptions = {
           name: user.name,
           role: user.role,
           orgId: user.orgId,
+          tokenVersion: user.tokenVersion,
         };
       },
     }),
@@ -96,6 +98,7 @@ export const authOptions: AuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.orgId = user.orgId;
+        token.tokenVersion = user.tokenVersion;
       }
       return token;
     },
@@ -104,6 +107,7 @@ export const authOptions: AuthOptions = {
       session.user.id = token.id ?? token.sub;
       session.user.role = token.role;
       session.user.orgId = token.orgId;
+      session.user.tokenVersion = token.tokenVersion;
       return session;
     },
   },

@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/session";
+import { requireSession, getOrgPlan } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await requireSession();
     const orgId = session.user.orgId;
+
+    const { isPro } = await getOrgPlan(orgId);
+    if (!isPro) {
+      return NextResponse.json(
+        { error: "UPGRADE_REQUIRED", message: "Upgrade to PRO to access leads." },
+        { status: 403 }
+      );
+    }
     const { searchParams } = req.nextUrl;
 
     const isExport   = searchParams.get("export") === "true";
@@ -16,10 +24,15 @@ export async function GET(req: NextRequest) {
     const startDate  = searchParams.get("startDate");
     const endDate    = searchParams.get("endDate");
 
-    const dateFilter = startDate && endDate ? {
-      gte: new Date(startDate + "T00:00:00.000Z"),
-      lte: new Date(endDate   + "T23:59:59.999Z"),
-    } : undefined;
+    let dateFilter: { gte: Date; lte: Date } | undefined;
+    if (startDate && endDate) {
+      const gte = new Date(startDate + "T00:00:00.000Z");
+      const lte = new Date(endDate   + "T23:59:59.999Z");
+      if (isNaN(gte.getTime()) || isNaN(lte.getTime())) {
+        return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+      }
+      dateFilter = { gte, lte };
+    }
 
     const where = {
       scannedEmp: { orgId },

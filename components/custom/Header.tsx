@@ -13,7 +13,9 @@ import {
     User,
     Bell,
     ChevronDown,
+    Zap,
 } from "lucide-react";
+import { usePlan } from "@/components/providers/PlanProvider";
 
 const ADMIN_NAV = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -36,6 +38,7 @@ export default function Header() {
     const { data: session } = useSession();
     const isEmployee = session?.user?.role === "EMPLOYEE";
     const NAV = isEmployee ? EMPLOYEE_NAV : ADMIN_NAV;
+    const { isPro, planExpiresAt } = usePlan();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +88,24 @@ export default function Header() {
 
                 {/* right actions */}
                 <div className="flex shrink-0 items-center gap-2">
+
+                    {/* plan badge — admin only */}
+                    {!isEmployee && (
+                        isPro ? (
+                            <div className="hidden md:flex items-center gap-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1">
+                                <Zap className="h-3 w-3 text-indigo-400" />
+                                <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wide">PRO</span>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/settings"
+                                className="hidden md:flex items-center gap-1.5 rounded-lg bg-zinc-800 border border-zinc-700 px-2.5 py-1 hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-colors group"
+                            >
+                                <Zap className="h-3 w-3 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                                <span className="text-[11px] font-semibold text-zinc-500 group-hover:text-indigo-300 transition-colors uppercase tracking-wide">Upgrade</span>
+                            </Link>
+                        )
+                    )}
 
                     {/* notifications */}
                     <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-800 hover:text-white">

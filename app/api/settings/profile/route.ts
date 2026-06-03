@@ -34,6 +34,13 @@ export async function PATCH(req: NextRequest) {
 
     if (cardFieldChanged) await invalidateCardImage(session.user.id);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsedLabels: any[] | undefined;
+    if (labelsRaw) {
+      try { parsedLabels = JSON.parse(labelsRaw); }
+      catch { return NextResponse.json({ error: "Invalid labels format" }, { status: 400 }); }
+    }
+
     const admin = await prisma.user.update({
       where: { id: session.user.id },
       data: {
@@ -43,7 +50,7 @@ export async function PATCH(req: NextRequest) {
         ...(countryCode         && { countryCode }),
         ...(country             && { country }),
         ...(phone?.trim()       && { phone: phone.trim() }),
-        ...(labelsRaw           && { labels: JSON.parse(labelsRaw) }),
+        ...(parsedLabels !== undefined && { labels: parsedLabels }),
         profileImage,
       },
       select: {
