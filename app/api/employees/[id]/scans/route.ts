@@ -7,6 +7,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const session = await requireSession();
     const { id } = await params;
 
+    if (session.user.role !== "ADMIN" && session.user.id !== id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const employee = await prisma.user.findFirst({ where: { id, orgId: session.user.orgId } });
     if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

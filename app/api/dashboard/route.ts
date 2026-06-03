@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/session";
+import { requireAdmin } from "@/lib/session";
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -8,7 +8,7 @@ function toDateStr(d: Date) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireSession();
+    const session = await requireAdmin();
     const orgId = session.user.orgId;
 
     const { searchParams } = req.nextUrl;

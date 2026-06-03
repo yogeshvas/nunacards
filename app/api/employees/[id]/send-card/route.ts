@@ -27,10 +27,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     const destination = `+${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
 
+    const masked = `****${destination.slice(-4)}`;
     console.log("[send-card] phone debug", {
       raw_countryCode: employee.countryCode,
-      raw_phone: employee.phone,
-      destination,
+      raw_phone: masked,
+      destination: masked,
     });
 
     await sendWhatsAppCard({
@@ -47,6 +48,6 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (err.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (err.message === "FORBIDDEN")    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     console.error("[POST /api/employees/[id]/send-card]", err);
-    return NextResponse.json({ error: err.message ?? "Failed to send card" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to send card." }, { status: 500 });
   }
 }

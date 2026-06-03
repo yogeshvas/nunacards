@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { usePlan } from "@/components/providers/PlanProvider";
+import { UpgradeGate } from "@/components/custom/UpgradeGate";
 import {
   ArrowLeft, Mail, Phone, Tag, QrCode,
   Pencil, Archive, Users, BarChart2,
@@ -630,6 +632,7 @@ export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session } = useSession();
+  const { isPro } = usePlan();
   const isSelf = session?.user?.id === id;
   const [emp, setEmp] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
@@ -840,7 +843,14 @@ export default function EmployeeDetailPage() {
           </div>
 
           {tab === "info"       && <InfoTab emp={emp}/>}
-          {tab === "leads"      && <LeadsTab empId={id}/>}
+          {tab === "leads"      && (
+            isPro
+              ? <LeadsTab empId={id}/>
+              : <UpgradeGate
+                  label="Employee Leads"
+                  className="border border-zinc-800 bg-zinc-900/50 min-h-[300px]"
+                />
+          )}
           {tab === "engagement" && <EngagementTab empId={id}/>}
         </div>
 

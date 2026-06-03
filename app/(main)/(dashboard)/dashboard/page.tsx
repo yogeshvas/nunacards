@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePlan } from "@/components/providers/PlanProvider";
+import { UpgradeGate } from "@/components/custom/UpgradeGate";
 import {
   BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell,
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
@@ -154,6 +156,7 @@ function EmptyChart({ message = "No data for this period" }: { message?: string 
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { isPro } = usePlan();
   const today = toDateStr(new Date());
   const [startDate, setStartDate] = useState(PRESETS[0].start());
   const [endDate, setEndDate]     = useState(PRESETS[0].end());
@@ -325,94 +328,108 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ── leads trend + unique/repeat split ── */}
-          <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-            {/* leads area chart */}
+          {/* ── leads trend + view breakdown ── */}
+          {isPro ? (
+            <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+              {/* leads area chart */}
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+                <SectionHeader title="Leads captured over time" sub={aggregate ? "Aggregated weekly" : "Daily"} />
+                {chartData.every(d => d.Leads === 0) ? <EmptyChart /> : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor="#059669" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#059669" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} stroke="#27272a" />
+                      <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                      <YAxis allowDecimals={false} tick={AXIS_TICK} axisLine={false} tickLine={false} width={28} />
+                      <Tooltip {...CHART_TOOLTIP_STYLE} />
+                      <Area type="monotone" dataKey="Leads" stroke="#059669" strokeWidth={2} fill="url(#leadsGrad)" dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* unique vs repeat donut */}
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+                <SectionHeader title="View Breakdown" />
+                {pieData.length === 0 ? <EmptyChart /> : (
+                  <>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80}
+                          dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                          {pieData.map((entry, i) => (
+                            <Cell key={i} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, fontSize: 12 }}
+                          itemStyle={{ color: "#fff" }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="flex justify-center gap-4 mt-1">
+                      {pieData.map(d => (
+                        <div key={d.name} className="flex items-center gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-sm" style={{ background: d.color }} />
+                          <div>
+                            <p className="text-xs text-zinc-400">{d.name}</p>
+                            <p className="text-sm font-semibold text-white">{d.value}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <UpgradeGate
+              label="Leads Trend & View Breakdown"
+              className="border border-zinc-800 bg-zinc-900 min-h-[280px]"
+            />
+          )}
+
+          {/* ── combined views + leads + scans ── */}
+          {isPro ? (
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-              <SectionHeader title="Leads captured over time" sub={aggregate ? "Aggregated weekly" : "Daily"} />
-              {chartData.every(d => d.Leads === 0) ? <EmptyChart /> : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={chartData}>
+              <SectionHeader title="Views · Leads · Scans — combined" sub="Overlay of all three metrics" />
+              {!hasAnyActivity ? <EmptyChart /> : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={chartData}>
                     <defs>
-                      <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#059669" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#059669" stopOpacity={0} />
+                      <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#7c3aed" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="#27272a" />
                     <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis allowDecimals={false} tick={AXIS_TICK} axisLine={false} tickLine={false} width={28} />
                     <Tooltip {...CHART_TOOLTIP_STYLE} />
-                    <Area type="monotone" dataKey="Leads" stroke="#059669" strokeWidth={2} fill="url(#leadsGrad)" dot={false} />
-                  </AreaChart>
+                    <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: 11, color: "#71717a", paddingTop: 10 }} />
+                    <Area type="monotone" dataKey="Views" fill="url(#viewsGrad)" stroke="#7c3aed" strokeWidth={2} dot={false} />
+                    <Bar dataKey="Scans" fill="#4f46e5" opacity={0.7} radius={[3,3,0,0]} barSize={8} />
+                    <Line type="monotone" dataKey="Leads" stroke="#059669" strokeWidth={2} dot={false} />
+                  </ComposedChart>
                 </ResponsiveContainer>
               )}
             </div>
-
-            {/* unique vs repeat donut */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-              <SectionHeader title="View Breakdown" />
-              {pieData.length === 0 ? <EmptyChart /> : (
-                <>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80}
-                        dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
-                        {pieData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, fontSize: 12 }}
-                        itemStyle={{ color: "#fff" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex justify-center gap-4 mt-1">
-                    {pieData.map(d => (
-                      <div key={d.name} className="flex items-center gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-sm" style={{ background: d.color }} />
-                        <div>
-                          <p className="text-xs text-zinc-400">{d.name}</p>
-                          <p className="text-sm font-semibold text-white">{d.value}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* ── combined views + leads + scans ── */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-            <SectionHeader title="Views · Leads · Scans — combined" sub="Overlay of all three metrics" />
-            {!hasAnyActivity ? <EmptyChart /> : (
-              <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={chartData}>
-                  <defs>
-                    <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#7c3aed" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="#27272a" />
-                  <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                  <YAxis allowDecimals={false} tick={AXIS_TICK} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip {...CHART_TOOLTIP_STYLE} />
-                  <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: 11, color: "#71717a", paddingTop: 10 }} />
-                  <Area type="monotone" dataKey="Views" fill="url(#viewsGrad)" stroke="#7c3aed" strokeWidth={2} dot={false} />
-                  <Bar dataKey="Scans" fill="#4f46e5" opacity={0.7} radius={[3,3,0,0]} barSize={8} />
-                  <Line type="monotone" dataKey="Leads" stroke="#059669" strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          ) : (
+            <UpgradeGate
+              label="Combined Performance Chart"
+              className="border border-zinc-800 bg-zinc-900 min-h-[240px]"
+            />
+          )}
 
           {/* ── top 5 by scans + top 5 by leads ── */}
           <div className="grid gap-4 lg:grid-cols-2">
 
-            {/* top by scans */}
+            {/* top by scans — always visible */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
               <SectionHeader title="Top 5 — QR Scans" sub="Most card scans in this period" />
               {topScansData.length === 0 ? (
@@ -449,60 +466,74 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* top by leads */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-              <SectionHeader title="Top 5 — Leads Captured" sub="Most leads generated in this period" />
-              {topLeadsData.length === 0 ? (
-                <EmptyChart message="No leads recorded yet" />
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={topLeadsData} layout="vertical" barCategoryGap="25%">
-                      <CartesianGrid horizontal={false} stroke="#27272a" />
-                      <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} axisLine={false} tickLine={false} />
-                      <YAxis type="category" dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} width={60} />
-                      <Tooltip content={<CustomTooltipName />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                      <Bar dataKey="Leads" fill="#059669" radius={[0,4,4,0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="mt-3 space-y-2">
-                    {(data?.topByLeads ?? []).map((e, i) => (
-                      <div key={e.id} className="flex items-center gap-3">
-                        <span className="w-4 text-xs text-zinc-600 font-mono">{i + 1}</span>
-                        <img
-                          src={e.profileImage ?? `https://api.dicebear.com/10.x/micah/svg?seed=${encodeURIComponent(e.name)}`}
-                          className="h-7 w-7 rounded-full object-cover bg-zinc-800"
-                          alt={e.name}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-white truncate">{e.name}</p>
-                          <p className="text-[10px] text-zinc-500 truncate">{e.designation}</p>
+            {/* top by leads — PRO only */}
+            {isPro ? (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+                <SectionHeader title="Top 5 — Leads Captured" sub="Most leads generated in this period" />
+                {topLeadsData.length === 0 ? (
+                  <EmptyChart message="No leads recorded yet" />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={topLeadsData} layout="vertical" barCategoryGap="25%">
+                        <CartesianGrid horizontal={false} stroke="#27272a" />
+                        <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} axisLine={false} tickLine={false} />
+                        <YAxis type="category" dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} width={60} />
+                        <Tooltip content={<CustomTooltipName />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                        <Bar dataKey="Leads" fill="#059669" radius={[0,4,4,0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="mt-3 space-y-2">
+                      {(data?.topByLeads ?? []).map((e, i) => (
+                        <div key={e.id} className="flex items-center gap-3">
+                          <span className="w-4 text-xs text-zinc-600 font-mono">{i + 1}</span>
+                          <img
+                            src={e.profileImage ?? `https://api.dicebear.com/10.x/micah/svg?seed=${encodeURIComponent(e.name)}`}
+                            className="h-7 w-7 rounded-full object-cover bg-zinc-800"
+                            alt={e.name}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-white truncate">{e.name}</p>
+                            <p className="text-[10px] text-zinc-500 truncate">{e.designation}</p>
+                          </div>
+                          <span className="text-xs font-semibold text-emerald-400">{e.count} leads</span>
                         </div>
-                        <span className="text-xs font-semibold text-emerald-400">{e.count} leads</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <UpgradeGate
+                label="Top Performers by Leads"
+                className="border border-zinc-800 bg-zinc-900 min-h-[300px]"
+              />
+            )}
           </div>
 
           {/* ── summary footer ── */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-center">
-              {[
-                { label: "Views / Lead",   value: data && data.leads.total > 0 ? (data.views.total / data.leads.total).toFixed(1) : "—" },
-                { label: "Scan → Lead %",  value: data && data.scans.total > 0 ? `${Math.round((data.leads.total / data.scans.total) * 100)}%` : "—" },
-                { label: "Unique Rate",    value: data && data.views.total > 0  ? `${Math.round((data.views.unique / data.views.total) * 100)}%` : "—" },
-                { label: "Avg Leads / Employee", value: data && data.employees.active > 0 ? (data.leads.total / data.employees.active).toFixed(1) : "—" },
-              ].map(m => (
-                <div key={m.label}>
-                  <p className="text-xl font-bold text-white">{m.value}</p>
-                  <p className="text-[11px] text-zinc-500 mt-0.5 uppercase tracking-wide">{m.label}</p>
-                </div>
-              ))}
+          {isPro ? (
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-center">
+                {[
+                  { label: "Views / Lead",   value: data && data.leads.total > 0 ? (data.views.total / data.leads.total).toFixed(1) : "—" },
+                  { label: "Scan → Lead %",  value: data && data.scans.total > 0 ? `${Math.round((data.leads.total / data.scans.total) * 100)}%` : "—" },
+                  { label: "Unique Rate",    value: data && data.views.total > 0  ? `${Math.round((data.views.unique / data.views.total) * 100)}%` : "—" },
+                  { label: "Avg Leads / Employee", value: data && data.employees.active > 0 ? (data.leads.total / data.employees.active).toFixed(1) : "—" },
+                ].map(m => (
+                  <div key={m.label}>
+                    <p className="text-xl font-bold text-white">{m.value}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 uppercase tracking-wide">{m.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <UpgradeGate
+              label="Conversion Metrics"
+              className="border border-zinc-800 bg-zinc-900/50 min-h-[120px]"
+            />
+          )}
         </>
       )}
     </div>

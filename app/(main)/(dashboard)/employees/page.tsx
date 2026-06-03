@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Users, Mail, Phone, Pencil, Archive, ArchiveRestore, CreditCard } from "lucide-react";
+import { Plus, Users, Mail, Phone, Pencil, Archive, ArchiveRestore, CreditCard, Lock } from "lucide-react";
 import toast from "react-hot-toast";
+import { usePlan } from "@/components/providers/PlanProvider";
+import { UpgradeGate } from "@/components/custom/UpgradeGate";
 
 type Employee = {
   id: string;
@@ -189,6 +191,8 @@ function AdminCardSection({ adminCard }: { adminCard: Employee | null }) {
 }
 
 export default function EmployeesPage() {
+  const { isPro } = usePlan();
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
   const [tab, setTab] = useState<Tab>("active");
   const [active, setActive] = useState<Employee[]>([]);
   const [archived, setArchived] = useState<Employee[]>([]);
@@ -265,11 +269,33 @@ export default function EmployeesPage() {
             {loadingActive ? "Loading…" : `${active.length} active member${active.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Link href="/employees/new"
-          className="flex items-center gap-2 h-9 rounded-lg bg-white px-4 text-sm font-semibold text-black transition hover:bg-zinc-100 active:scale-[0.98]">
-          <Plus className="h-4 w-4" /> Add Employee
-        </Link>
+        {isPro ? (
+          <Link href="/employees/new"
+            className="flex items-center gap-2 h-9 rounded-lg bg-white px-4 text-sm font-semibold text-black transition hover:bg-zinc-100 active:scale-[0.98]">
+            <Plus className="h-4 w-4" /> Add Employee
+          </Link>
+        ) : (
+          <button
+            onClick={() => setShowUpgradeGate(true)}
+            className="flex items-center gap-2 h-9 rounded-lg border border-zinc-700 bg-zinc-900 px-4 text-sm font-medium text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
+          >
+            <Lock className="h-3.5 w-3.5" /> Add Employee
+          </button>
+        )}
       </div>
+
+      {/* upgrade modal */}
+      {showUpgradeGate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowUpgradeGate(false)} />
+          <div className="relative z-10 w-full max-w-xs rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
+            <button onClick={() => setShowUpgradeGate(false)} className="absolute right-3 top-3 text-zinc-600 hover:text-zinc-300 transition-colors">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <UpgradeGate label="Add Team Members" />
+          </div>
+        </div>
+      )}
 
       {/* tabs */}
       <div className="flex gap-1 rounded-xl bg-zinc-950 p-1 mb-6 w-fit">

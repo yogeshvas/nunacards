@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePlan } from "@/components/providers/PlanProvider";
+import { UpgradeGate } from "@/components/custom/UpgradeGate";
 import {
   Users, Target, Download, Search, X,
   ChevronLeft, ChevronRight, Filter, Calendar,
@@ -68,7 +70,23 @@ function Avatar({ src, name, size = 9 }: { src: string | null; name: string; siz
 const PAGE_SIZE = 25;
 
 export default function LeadsPage() {
+  const { isPro } = usePlan();
   const today = toDateStr(new Date());
+
+  if (!isPro) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Leads</h1>
+          <p className="mt-1 text-sm text-zinc-400">All contacts captured across your team's digital cards.</p>
+        </div>
+        <UpgradeGate
+          label="Leads"
+          className="border border-zinc-800 bg-zinc-900 min-h-[480px]"
+        />
+      </div>
+    );
+  }
 
   // ── filters ──────────────────────────────────────────────────────────────
   const [search,      setSearch]      = useState("");

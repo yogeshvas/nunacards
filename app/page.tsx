@@ -65,6 +65,9 @@ function Nav() {
           <span className="text-sm font-bold tracking-wide text-white">NunaCards</span>
         </div>
         <div className="flex items-center gap-3">
+          <a href="#pricing" className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-4 py-2">
+            Pricing
+          </a>
           <Link href="/login" className="text-sm text-zinc-400 hover:text-white transition-colors px-4 py-2">
             Sign in
           </Link>
@@ -797,6 +800,122 @@ export default function LandingPage() {
               </div>
             </div>
           </Section>
+        </div>
+      </section>
+
+      {/* ── PRICING ──────────────────────────────────────────────────────── */}
+      <section id="pricing" className="relative py-28 overflow-hidden">
+        <ParallaxBlob className="h-[500px] w-[500px] bg-violet-600/8" style={{ top: "0%", right: -100 }} />
+        <div className="relative mx-auto max-w-5xl px-6">
+          <Section className="text-center mb-14 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400">Pricing</p>
+            <h2 className="text-4xl font-black tracking-tight">
+              Start free.<br />
+              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                Unlock everything for $1.
+              </span>
+            </h2>
+            <p className="text-zinc-400 max-w-xl mx-auto">
+              No hidden fees. No per-seat pricing. One flat rate for your whole team.
+            </p>
+          </Section>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+
+            {/* FREE plan */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 flex flex-col">
+              <div className="mb-6">
+                <p className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">Free</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-5xl font-black text-white">$0</span>
+                  <span className="text-zinc-500 text-sm pb-1.5">/month</span>
+                </div>
+                <p className="mt-2 text-sm text-zinc-600">Your own digital card, forever free.</p>
+              </div>
+
+              <ul className="space-y-3 flex-1 mb-8">
+                {[
+                  "Your own digital business card",
+                  "Unique QR code for your card",
+                  "Share via link or WhatsApp",
+                  "Save contact button",
+                ].map(f => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-zinc-400">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-700">
+                      <Check className="h-2.5 w-2.5 text-zinc-400" />
+                    </span>
+                    {f}
+                  </li>
+                ))}
+                {[
+                  "Team employees",
+                  "Leads analytics",
+                  "CSV export",
+                  "Advanced charts",
+                ].map(f => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-zinc-600 line-through">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-800/60">
+                      <Check className="h-2.5 w-2.5 text-zinc-700" />
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <Link href="/signup"
+                className="block w-full rounded-xl border border-zinc-700 py-3 text-center text-sm font-semibold text-zinc-300 hover:border-zinc-500 hover:text-white transition-all">
+                Get started free
+              </Link>
+            </div>
+
+            {/* PRO plan */}
+            <div className="relative rounded-2xl p-[1.5px] bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 shadow-2xl shadow-indigo-500/20">
+              {/* most popular badge */}
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <div className="rounded-full bg-indigo-600 px-3.5 py-1">
+                  <span className="text-[11px] font-semibold text-white">Most Popular</span>
+                </div>
+              </div>
+
+              <div className="rounded-[14px] bg-zinc-900 p-8 flex flex-col h-full">
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-3">PRO</p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-5xl font-black text-white">$1</span>
+                    <span className="text-zinc-400 text-sm pb-1.5">/month</span>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-500">~₹85/month · 30-day access</p>
+                </div>
+
+                <ul className="space-y-3 flex-1 mb-8">
+                  {[
+                    "Everything in Free",
+                    "Unlimited team members",
+                    "Full leads list & analytics",
+                    "CSV export for CRM",
+                    "Advanced dashboard charts",
+                    "Top performer leaderboard",
+                    "Per-employee scan & lead tracking",
+                    "WhatsApp one-click follow-up",
+                  ].map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-zinc-300">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
+                        <Check className="h-2.5 w-2.5 text-emerald-400" />
+                      </span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link href="/signup"
+                  className="block w-full rounded-xl bg-indigo-600 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98]">
+                  Start PRO — $1/month
+                </Link>
+                <p className="mt-2 text-center text-xs text-zinc-600">Cancel anytime · No contracts</p>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 

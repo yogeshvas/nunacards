@@ -72,6 +72,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       (email !== null && (email || null) !== existing.email) ||
       (imageFile && imageFile.size > 0);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsedLabels: any[] | undefined;
+    if (labelsRaw) {
+      try { parsedLabels = JSON.parse(labelsRaw); }
+      catch { return NextResponse.json({ error: "Invalid labels format" }, { status: 400 }); }
+    }
+
     const employee = await prisma.user.update({
       where: { id },
       data: {
@@ -81,7 +88,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(countryCode && { countryCode }),
         ...(country     && { country }),
         ...(phone       && { phone }),
-        ...(labelsRaw   && { labels: JSON.parse(labelsRaw) }),
+        ...(parsedLabels !== undefined && { labels: parsedLabels }),
         profileImage,
         ...(cardFieldChanged && { cardImageUrl: null }),
       },

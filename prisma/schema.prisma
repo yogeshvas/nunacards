@@ -113,11 +113,15 @@ model SuperAdmin {
 }
 
 model OtpToken {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  otp       String
-  verified  Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  otp             String
+  verified        Boolean   @default(false)
+  expiresAt       DateTime
+  attempts        Int       @default(0)
+  lockedUntil     DateTime?
+  sendCount       Int       @default(0)
+  sendWindowStart DateTime?
+  createdAt       DateTime  @default(now())
 }

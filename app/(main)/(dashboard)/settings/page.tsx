@@ -67,7 +67,56 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
   const [logo, setLogo] = useState<string | null>(org.logo);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/payment/create-order", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Failed to create order"); return; }
+
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).Razorpay) { resolve(); return; }
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject();
+        document.body.appendChild(script);
+      });
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "NunaCards",
+        description: "PRO Plan · 1 Month (~$1 / ₹85)",
+        order_id: data.orderId,
+        handler: async (response: any) => {
+          const tid = toast.loading("Activating PRO plan…");
+          try {
+            const vRes = await fetch("/api/payment/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(response),
+            });
+            const vData = await vRes.json();
+            if (!vRes.ok) { toast.error(vData.error ?? "Verification failed", { id: tid }); return; }
+            toast.success("You're now on PRO!", { id: tid });
+            onUpdate(vData.org);
+          } catch { toast.error("Verification failed", { id: tid }); }
+        },
+        theme: { color: "#6366f1" },
+      };
+
+      new (window as any).Razorpay(options).open();
+    } catch {
+      toast.error("Failed to load payment. Please try again.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   function applyLogo(file: File) {
     if (!file.type.startsWith("image/")) return;
@@ -110,11 +159,20 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
                 Expires {expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             )}
-            {!isPro && <p className="text-xs text-zinc-500">Upgrade to PRO for advanced features.</p>}
+            {!isPro && (
+            <p className="text-xs text-zinc-500">
+              Upgrade to PRO · <span className="text-white font-medium">$1/month</span>{" "}
+              <span className="text-zinc-600">(~₹85)</span>
+            </p>
+          )}
           </div>
           {!isPro && (
-            <button className="h-9 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
-              Upgrade to PRO
+            <button
+              onClick={handleUpgrade}
+              disabled={upgrading}
+              className="h-9 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-50"
+            >
+              {upgrading ? "Loading…" : "Upgrade to PRO"}
             </button>
           )}
         </div>

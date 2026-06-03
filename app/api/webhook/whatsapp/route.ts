@@ -8,7 +8,7 @@ import { getOrGenerateCardImage } from "@/lib/cardImage";
 
 function verifySignature(rawBody: string, signature: string): boolean {
   const secret = process.env.AISENSY_WEBHOOK_SECRET;
-  if (!secret) return true;
+  if (!secret) return false;
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   return expected === signature;
 }
