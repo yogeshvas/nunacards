@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   QrCode, Users, BarChart2, MessageCircle, ChevronRight,
   Check, Zap, Shield, Star, ArrowRight, Phone, Mail,
-  ExternalLink, PhoneCall, ChevronLeft,
+  ExternalLink, PhoneCall, ChevronLeft, ArrowLeft, Eye, EyeOff, X, Clock,
 } from "lucide-react";
+import { CountryCodeDropdown } from "@/components/custom/CountryCodeDropdown";
 
 // ── demo data ─────────────────────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ function useInView(threshold = 0.15) {
 
 // ── nav ───────────────────────────────────────────────────────────────────────
 
-function Nav() {
+function Nav({ onTrial }: { onTrial: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
@@ -71,9 +73,9 @@ function Nav() {
           <Link href="/login" className="text-sm text-zinc-400 hover:text-white transition-colors px-4 py-2">
             Sign in
           </Link>
-          <Link href="/signup" className="text-sm font-semibold bg-white text-black px-4 py-2 rounded-xl hover:bg-zinc-100 transition-colors">
-            Get started
-          </Link>
+          <button onClick={onTrial} className="flex items-center gap-1.5 text-sm font-semibold bg-white text-black px-4 py-2 rounded-xl hover:bg-zinc-100 transition-colors">
+            <Clock className="h-3.5 w-3.5" /> Free trial
+          </button>
         </div>
       </div>
     </nav>
@@ -454,6 +456,236 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
   );
 }
 
+// ── trial modal ───────────────────────────────────────────────────────────────
+
+type TrialStep = "identity" | "otp" | "profile";
+
+const OTP_LEN = 8;
+
+function OtpBoxes({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const chars = value.toUpperCase().padEnd(OTP_LEN, " ").split("").slice(0, OTP_LEN);
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !chars[i] && i > 0) inputs.current[i - 1]?.focus();
+  }
+  function handleChange(i: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(-1);
+    const next = chars.map((c, idx) => (idx === i ? val : c)).join("").replace(/ /g, "");
+    onChange(next);
+    if (val && i < OTP_LEN - 1) inputs.current[i + 1]?.focus();
+  }
+  function handlePaste(e: React.ClipboardEvent) {
+    const pasted = e.clipboardData.getData("text").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, OTP_LEN);
+    if (pasted) { onChange(pasted); inputs.current[Math.min(pasted.length, OTP_LEN - 1)]?.focus(); }
+    e.preventDefault();
+  }
+  return (
+    <div className="flex gap-1.5 justify-center">
+      {Array.from({ length: OTP_LEN }).map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputs.current[i] = el; }}
+          type="text" inputMode="text" autoCapitalize="characters" maxLength={1}
+          value={chars[i]?.trim() || ""}
+          onChange={(e) => handleChange(i, e)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          className="h-10 w-10 rounded-xl border border-zinc-700 bg-zinc-900 text-center text-sm font-bold text-white outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 caret-transparent uppercase"
+        />
+      ))}
+    </div>
+  );
+}
+
+function TrialModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [step, setStep] = useState<TrialStep>("identity");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [profile, setProfile] = useState({ orgName: "", countryCode: "+91", phone: "", country: "India", password: "" });
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function profileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setProfile((p) => ({ ...p, [e.target.name]: e.target.value }));
+  }
+
+  async function sendOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Failed to send OTP"); return; }
+      setStep("otp");
+    } catch { setError("Network error. Please try again."); }
+    finally { setLoading(false); }
+  }
+
+  async function verifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    if (otp.length < OTP_LEN) { setError(`Enter all ${OTP_LEN} characters`); return; }
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Verification failed"); return; }
+      setStep("profile");
+    } catch { setError("Network error. Please try again."); }
+    finally { setLoading(false); }
+  }
+
+  async function createAccount(e: React.FormEvent) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, ...profile }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Something went wrong"); return; }
+      router.push("/login?trial=1");
+    } catch { setError("Network error. Please try again."); }
+    finally { setLoading(false); }
+  }
+
+  const inputCls = "h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3.5 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
+  const btnCls = "mt-1 h-11 w-full rounded-xl bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-700/60 shadow-2xl shadow-black/80 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-zinc-800">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white shrink-0">
+              <span className="text-[10px] font-black text-black">N</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Start your free trial</p>
+              <p className="text-xs text-amber-400 flex items-center gap-1 mt-0.5">
+                <Clock className="h-3 w-3" /> 30 days · no credit card required
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* step indicators */}
+        <div className="flex items-center gap-0 px-6 pt-4">
+          {(["identity", "otp", "profile"] as TrialStep[]).map((s, i) => {
+            const stepIndex = ["identity", "otp", "profile"].indexOf(step);
+            const done = stepIndex > i;
+            const active = step === s;
+            return (
+              <div key={s} className="flex items-center flex-1">
+                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${active ? "bg-indigo-600 text-white" : done ? "bg-zinc-700 text-zinc-300" : "border border-zinc-700 text-zinc-600"}`}>
+                  {done ? <Check className="h-3 w-3" /> : i + 1}
+                </div>
+                {i < 2 && <div className="flex-1 h-px mx-2 bg-zinc-800" />}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* body */}
+        <div className="px-6 py-5">
+          {step === "identity" && (
+            <form onSubmit={sendOtp} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Full name</label>
+                <input type="text" placeholder="Your name" value={name} required onChange={(e) => setName(e.target.value)} className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Work email</label>
+                <input type="email" placeholder="you@company.com" value={email} required onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+              </div>
+              {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400 ring-1 ring-red-500/20">{error}</p>}
+              <button type="submit" disabled={loading} className={btnCls}>
+                {loading ? "Sending code…" : "Send verification code →"}
+              </button>
+              <p className="text-center text-xs text-zinc-500">
+                Already have an account?{" "}
+                <Link href="/login" onClick={onClose} className="font-medium text-white hover:underline">Sign in</Link>
+              </p>
+            </form>
+          )}
+
+          {step === "otp" && (
+            <form onSubmit={verifyOtp} className="space-y-5">
+              <button type="button" onClick={() => { setStep("identity"); setOtp(""); setError(""); }} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-white transition-colors">
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
+              </button>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-white">Check your email</p>
+                <p className="text-xs text-zinc-400 mt-1">We sent a 6-digit code to <span className="text-white font-medium">{email}</span></p>
+              </div>
+              <OtpBoxes value={otp} onChange={(v) => { setOtp(v); setError(""); }} />
+              {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400 ring-1 ring-red-500/20">{error}</p>}
+              <button type="submit" disabled={loading || otp.length < OTP_LEN} className={btnCls}>
+                {loading ? "Verifying…" : "Verify & continue →"}
+              </button>
+              <p className="text-center text-xs text-zinc-500">
+                Didn't get it?{" "}
+                <button type="button" onClick={sendOtp as any} className="font-medium text-white hover:underline">Resend</button>
+              </p>
+            </form>
+          )}
+
+          {step === "profile" && (
+            <form onSubmit={createAccount} className="space-y-3.5">
+              <p className="text-xs text-zinc-400 mb-1">Almost there — set up your organization.</p>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Organization name</label>
+                <input name="orgName" type="text" placeholder="Acme Inc." value={profile.orgName} onChange={profileChange} required className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Phone number</label>
+                <div className="flex gap-2">
+                  <CountryCodeDropdown
+                    value={profile.countryCode}
+                    onChange={(code, country) => setProfile((p) => ({ ...p, countryCode: code, country }))}
+                  />
+                  <input name="phone" type="tel" placeholder="98765 43210" value={profile.phone} onChange={profileChange} required className={`${inputCls} flex-1`} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Password</label>
+                <div className="relative">
+                  <input name="password" type={showPw ? "text" : "password"} placeholder="Min. 8 characters" value={profile.password} onChange={profileChange} required className={`${inputCls} pr-10`} />
+                  <button type="button" tabIndex={-1} onClick={() => setShowPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400 ring-1 ring-red-500/20">{error}</p>}
+              <button type="submit" disabled={loading} className={btnCls}>
+                {loading ? "Activating trial…" : "Activate 30-day free trial →"}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── stats ─────────────────────────────────────────────────────────────────────
 
 const STATS = [
@@ -521,9 +753,12 @@ const STEPS = [
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const [trialOpen, setTrialOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      <Nav />
+      {trialOpen && <TrialModal onClose={() => setTrialOpen(false)} />}
+      <Nav onTrial={() => setTrialOpen(true)} />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
@@ -554,15 +789,15 @@ export default function LandingPage() {
                 NunaCards turns every employee into a networker. Create digital visiting cards, share via QR or WhatsApp, and capture leads — all from one dashboard.
               </p>
               <div className="flex flex-wrap items-center gap-4">
-                <Link href="/signup" className="inline-flex items-center gap-2 h-12 rounded-2xl bg-white px-6 text-sm font-bold text-black hover:bg-zinc-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                  Start for free <ArrowRight className="h-4 w-4" />
-                </Link>
+                <button onClick={() => setTrialOpen(true)} className="inline-flex items-center gap-2 h-12 rounded-2xl bg-white px-6 text-sm font-bold text-black hover:bg-zinc-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                  <Clock className="h-4 w-4" /> Start free trial
+                </button>
                 <Link href="/login" className="inline-flex items-center gap-2 h-12 rounded-2xl border border-zinc-700 px-6 text-sm font-medium text-zinc-300 hover:border-zinc-500 hover:text-white transition-all">
                   Sign in to dashboard
                 </Link>
               </div>
               <div className="flex items-center gap-6">
-                {[{ icon: "✓", text: "No credit card required" }, { icon: "✓", text: "Setup in 2 minutes" }].map(b => (
+                {[{ icon: "✓", text: "30 days free · no card needed" }, { icon: "✓", text: "Setup in 2 minutes" }].map(b => (
                   <div key={b.text} className="flex items-center gap-1.5 text-xs text-zinc-500">
                     <span className="text-green-400 font-bold">{b.icon}</span> {b.text}
                   </div>
@@ -862,10 +1097,10 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <Link href="/signup"
+              <button onClick={() => setTrialOpen(true)}
                 className="block w-full rounded-xl border border-zinc-700 py-3 text-center text-sm font-semibold text-zinc-300 hover:border-zinc-500 hover:text-white transition-all">
-                Get started free
-              </Link>
+                Start free trial
+              </button>
             </div>
 
             {/* PRO plan */}
@@ -907,11 +1142,11 @@ export default function LandingPage() {
                   ))}
                 </ul>
 
-                <Link href="/signup"
+                <button onClick={() => setTrialOpen(true)}
                   className="block w-full rounded-xl bg-indigo-600 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98]">
-                  Start PRO — $1/month
-                </Link>
-                <p className="mt-2 text-center text-xs text-zinc-600">Cancel anytime · No contracts</p>
+                  Start free trial → then $1/month
+                </button>
+                <p className="mt-2 text-center text-xs text-zinc-600">30 days free · no credit card needed</p>
               </div>
             </div>
 
@@ -935,14 +1170,14 @@ export default function LandingPage() {
               Join teams that have ditched paper cards. Set up NunaCards in minutes — no technical knowledge needed.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/signup" className="inline-flex items-center gap-2 h-13 rounded-2xl bg-white px-8 py-3.5 text-base font-bold text-black hover:bg-zinc-100 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-white/10">
-                Create your account <ArrowRight className="h-4 w-4" />
-              </Link>
+              <button onClick={() => setTrialOpen(true)} className="inline-flex items-center gap-2 h-13 rounded-2xl bg-white px-8 py-3.5 text-base font-bold text-black hover:bg-zinc-100 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-white/10">
+                <Clock className="h-4 w-4" /> Start your free trial <ArrowRight className="h-4 w-4" />
+              </button>
               <Link href="/login" className="inline-flex items-center gap-2 h-13 rounded-2xl border border-zinc-700 px-8 py-3.5 text-base font-medium text-zinc-300 hover:border-zinc-500 hover:text-white transition-all">
                 Sign in
               </Link>
             </div>
-            <p className="text-xs text-zinc-600">No credit card required · Free to start · Cancel anytime</p>
+            <p className="text-xs text-zinc-600">30 days free · no credit card required · cancel anytime</p>
           </Section>
         </div>
       </section>

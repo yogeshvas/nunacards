@@ -152,6 +152,21 @@ async function uploadBufferToCloudinary(buffer: Buffer): Promise<string> {
   });
 }
 
+function extractCloudinaryPublicId(url: string): string | null {
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/);
+  return match ? match[1] : null;
+}
+
+async function deleteCloudinaryImage(url: string): Promise<void> {
+  const publicId = extractCloudinaryPublicId(url);
+  if (!publicId) return;
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (err) {
+    console.error("[deleteCloudinaryImage] failed to delete", publicId, err);
+  }
+}
+
 export async function getOrGenerateCardImage(employeeId: string): Promise<string> {
   const employee = await prisma.user.findUnique({
     where: { id: employeeId },
@@ -186,4 +201,17 @@ export async function getOrGenerateCardImage(employeeId: string): Promise<string
 
 export async function invalidateCardImage(employeeId: string): Promise<void> {
   await prisma.user.update({ where: { id: employeeId }, data: { cardImageUrl: null } });
+}
+
+// Deletes old card from Cloudinary and generates a fresh one in the background.
+// Call via next/server `after()` so it doesn't block the API response.
+export async function regenerateCardImage(employeeId: string, oldUrl?: string | null): Promise<void> {
+  try {
+    const newUrl = await getOrGenerateCardImage(employeeId);
+    if (oldUrl && oldUrl !== newUrl) {
+      await deleteCloudinaryImage(oldUrl);
+    }
+  } catch (err) {
+    console.error("[regenerateCardImage]", err);
+  }
 }

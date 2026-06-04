@@ -7,6 +7,8 @@ import Link from "next/link";
 import { CountryCodeDropdown } from "@/components/custom/CountryCodeDropdown";
 
 
+const OTP_LEN = 8;
+
 function OtpInput({
   value,
   onChange,
@@ -15,44 +17,45 @@ function OtpInput({
   onChange: (v: string) => void;
 }) {
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.padEnd(6, "").split("").slice(0, 6);
+  const chars = value.toUpperCase().padEnd(OTP_LEN, " ").split("").slice(0, OTP_LEN);
 
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
+    if (e.key === "Backspace" && !chars[i] && i > 0) {
       inputs.current[i - 1]?.focus();
     }
   }
 
   function handleChange(i: number, e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value.replace(/\D/g, "").slice(-1);
-    const next = digits.map((d, idx) => (idx === i ? val : d)).join("").replace(/ /g, "");
+    const val = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(-1);
+    const next = chars.map((c, idx) => (idx === i ? val : c)).join("").replace(/ /g, "");
     onChange(next);
-    if (val && i < 5) inputs.current[i + 1]?.focus();
+    if (val && i < OTP_LEN - 1) inputs.current[i + 1]?.focus();
   }
 
   function handlePaste(e: React.ClipboardEvent) {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pasted = e.clipboardData.getData("text").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, OTP_LEN);
     if (pasted) {
       onChange(pasted);
-      inputs.current[Math.min(pasted.length, 5)]?.focus();
+      inputs.current[Math.min(pasted.length, OTP_LEN - 1)]?.focus();
     }
     e.preventDefault();
   }
 
   return (
-    <div className="flex gap-3 justify-center">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="flex gap-2 justify-center">
+      {Array.from({ length: OTP_LEN }).map((_, i) => (
         <input
           key={i}
           ref={(el) => { inputs.current[i] = el; }}
           type="text"
-          inputMode="numeric"
+          inputMode="text"
+          autoCapitalize="characters"
           maxLength={1}
-          value={digits[i] === " " ? "" : digits[i]}
+          value={chars[i]?.trim() || ""}
           onChange={(e) => handleChange(i, e)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          className="h-12 w-12 rounded-xl border border-zinc-800 bg-zinc-950 text-center text-lg font-semibold text-white outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 caret-transparent"
+          className="h-12 w-11 rounded-xl border border-zinc-800 bg-zinc-950 text-center text-base font-bold text-white outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 caret-transparent uppercase"
         />
       ))}
     </div>
@@ -128,7 +131,7 @@ export default function SignupPage() {
 
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length < 6) { setError("Please enter all 6 digits"); return; }
+    if (otp.length < OTP_LEN) { setError(`Please enter all ${OTP_LEN} characters`); return; }
     setError("");
     setLoading(true);
     try {
@@ -302,7 +305,7 @@ export default function SignupPage() {
 
                   {error && <ErrorBox>{error}</ErrorBox>}
 
-                  <button type="submit" disabled={loading || otp.length < 6} className={submitCls}>
+                  <button type="submit" disabled={loading || otp.length < OTP_LEN} className={submitCls}>
                     {loading ? "Verifying…" : "Verify code →"}
                   </button>
                 </form>

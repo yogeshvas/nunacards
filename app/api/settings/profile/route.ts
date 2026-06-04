@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { saveUpload } from "@/lib/upload";
-import { invalidateCardImage } from "@/lib/cardImage";
+import { regenerateCardImage } from "@/lib/cardImage";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -30,9 +30,11 @@ export async function PATCH(req: NextRequest) {
       (name && name !== existing.name) ||
       (designation !== null && (designation || null) !== existing.designation) ||
       (phone && phone !== existing.phone) ||
+      (countryCode && countryCode !== existing.countryCode) ||
+      (email !== null && (email || null) !== existing.email) ||
       (imageFile && imageFile.size > 0);
 
-    if (cardFieldChanged) await invalidateCardImage(session.user.id);
+    const oldCardImageUrl = existing.cardImageUrl;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsedLabels: any[] | undefined;
@@ -52,6 +54,7 @@ export async function PATCH(req: NextRequest) {
         ...(phone?.trim()       && { phone: phone.trim() }),
         ...(parsedLabels !== undefined && { labels: parsedLabels }),
         profileImage,
+        ...(cardFieldChanged && { cardImageUrl: null }),
       },
       select: {
         id: true, name: true, email: true, designation: true,
@@ -59,6 +62,10 @@ export async function PATCH(req: NextRequest) {
         employeeCode: true, profileImage: true, labels: true, slug: true,
       },
     });
+
+    if (cardFieldChanged) {
+      after(() => regenerateCardImage(admin.id, oldCardImageUrl));
+    }
 
     return NextResponse.json({ admin });
   } catch (err: any) {

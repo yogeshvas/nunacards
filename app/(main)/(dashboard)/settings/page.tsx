@@ -14,7 +14,7 @@ import { DESIGNATIONS } from "@/data/constants";
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type Label = { key: string; value: string };
-type OrgData = { id: string; name: string; slug: string; logo: string | null; plan: "BASIC" | "PRO"; planExpiresAt: string | null };
+type OrgData = { id: string; name: string; slug: string; logo: string | null; plan: "BASIC" | "PRO"; planExpiresAt: string | null; trialEndsAt: string | null };
 type AdminData = {
   id: string; name: string; email: string | null; designation: string | null;
   phone: string; countryCode: string; country: string;
@@ -141,8 +141,13 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
     finally { setSaving(false); }
   }
 
-  const isPro = org.plan === "PRO";
+  const now = new Date();
+  const isPro = org.plan === "PRO" && !!org.planExpiresAt && new Date(org.planExpiresAt) > now;
+  const isTrial = isPro && !!org.trialEndsAt && new Date(org.trialEndsAt) > now;
   const expiresAt = org.planExpiresAt ? new Date(org.planExpiresAt) : null;
+  const trialDaysLeft = isTrial && org.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(org.trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -151,22 +156,33 @@ function OrgSection({ org, onUpdate }: { org: OrgData; onUpdate: (o: OrgData) =>
         <SectionTitle title="Plan" sub="Your current subscription plan." />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className={`inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${isPro ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20" : "bg-zinc-800 text-zinc-400"}`}>
-              {isPro ? "PRO" : "BASIC"}
-            </span>
-            {isPro && expiresAt && (
+            {isTrial ? (
+              <span className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
+                Free Trial
+              </span>
+            ) : (
+              <span className={`inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${isPro ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20" : "bg-zinc-800 text-zinc-400"}`}>
+                {isPro ? "PRO" : "BASIC"}
+              </span>
+            )}
+            {isTrial && (
+              <p className="text-xs text-amber-500/80">
+                {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} remaining · Upgrade to keep your access
+              </p>
+            )}
+            {isPro && !isTrial && expiresAt && (
               <p className="text-xs text-zinc-500">
                 Expires {expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             )}
             {!isPro && (
-            <p className="text-xs text-zinc-500">
-              Upgrade to PRO · <span className="text-white font-medium">$1/month</span>{" "}
-              <span className="text-zinc-600">(~₹85)</span>
-            </p>
-          )}
+              <p className="text-xs text-zinc-500">
+                Upgrade to PRO · <span className="text-white font-medium">$1/month</span>{" "}
+                <span className="text-zinc-600">(~₹85)</span>
+              </p>
+            )}
           </div>
-          {!isPro && (
+          {(!isPro || isTrial) && (
             <button
               onClick={handleUpgrade}
               disabled={upgrading}

@@ -14,6 +14,7 @@ import {
     Bell,
     ChevronDown,
     Zap,
+    Clock,
 } from "lucide-react";
 import { usePlan } from "@/components/providers/PlanProvider";
 
@@ -38,7 +39,7 @@ export default function Header() {
     const { data: session } = useSession();
     const isEmployee = session?.user?.role === "EMPLOYEE";
     const NAV = isEmployee ? EMPLOYEE_NAV : ADMIN_NAV;
-    const { isPro, planExpiresAt } = usePlan();
+    const { isPro, isTrial, planExpiresAt } = usePlan();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -91,7 +92,12 @@ export default function Header() {
 
                     {/* plan badge — admin only */}
                     {!isEmployee && (
-                        isPro ? (
+                        isTrial ? (
+                            <div className="hidden md:flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1">
+                                <Clock className="h-3 w-3 text-amber-400" />
+                                <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wide">Trial</span>
+                            </div>
+                        ) : isPro ? (
                             <div className="hidden md:flex items-center gap-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1">
                                 <Zap className="h-3 w-3 text-indigo-400" />
                                 <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wide">PRO</span>

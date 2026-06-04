@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin, requireSession } from "@/lib/session";
 import { saveUpload } from "@/lib/upload";
-import { invalidateCardImage } from "@/lib/cardImage";
+import { regenerateCardImage } from "@/lib/cardImage";
 
 // ── GET /api/employees/[id] ───────────────────────────────────────────────────
 
@@ -72,6 +72,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       (email !== null && (email || null) !== existing.email) ||
       (imageFile && imageFile.size > 0);
 
+    const oldCardImageUrl = existing.cardImageUrl;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsedLabels: any[] | undefined;
     if (labelsRaw) {
@@ -93,6 +95,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(cardFieldChanged && { cardImageUrl: null }),
       },
     });
+
+    if (cardFieldChanged) {
+      after(() => regenerateCardImage(employee.id, oldCardImageUrl));
+    }
 
     return NextResponse.json({ employee });
   } catch (err: any) {
