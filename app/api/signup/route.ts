@@ -10,6 +10,12 @@ function slugify(text: string) {
     .replace(/^-|-$/g, "");
 }
 
+function uniqueSlug(text: string) {
+  const base = slugify(text);
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${base}-${suffix}`;
+}
+
 function generateEmployeeCode(orgSlug: string) {
   const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
   return `${orgSlug.slice(0, 4).toUpperCase()}-${suffix}`;
@@ -31,12 +37,13 @@ export async function POST(req: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const orgSlug = slugify(orgName);
-    const userSlug = slugify(token.name);
+    const orgSlug = uniqueSlug(orgName);
+    const userSlug = uniqueSlug(token.name);
 
     const result = await prisma.$transaction(async (tx) => {
+      const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       const org = await tx.organization.create({
-        data: { name: orgName, slug: orgSlug },
+        data: { name: orgName, slug: orgSlug, plan: "PRO", planExpiresAt: trialEndsAt, trialEndsAt },
       });
 
       const user = await tx.user.create({
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     if (err?.code === "P2002") {
       return NextResponse.json(
-        { error: "Organization name or email already taken" },
+        { error: "Email already in use" },
         { status: 409 },
       );
     }

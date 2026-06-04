@@ -3,8 +3,9 @@ import { prisma } from "@/lib/db";
 import { sendOtpEmail } from "@/lib/mailer";
 
 const OTP_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 8 alphanumeric (no ambiguous chars)
-const SEND_LIMIT = 3;       // max sends per hour
-const SEND_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const IS_DEV = process.env.NODE_ENV === "development";
+const SEND_LIMIT = 3;
+const SEND_WINDOW_MS = 5 * 60 * 1000; // 5 min (not enforced in dev)
 
 function generateOtp(): string {
   let otp = "";
@@ -32,10 +33,12 @@ export async function POST(req: NextRequest) {
     if (existing) {
       const now = new Date();
       const windowStart = existing.sendWindowStart;
-      const inWindow = windowStart && now.getTime() - windowStart.getTime() < SEND_WINDOW_MS;
+      const inWindow = !IS_DEV && windowStart && now.getTime() - windowStart.getTime() < SEND_WINDOW_MS;
       if (inWindow && existing.sendCount >= SEND_LIMIT) {
+        const msLeft = SEND_WINDOW_MS - (now.getTime() - windowStart!.getTime());
+        const minutesLeft = Math.ceil(msLeft / 60000);
         return NextResponse.json(
-          { error: "Too many OTP requests. Please wait before trying again." },
+          { error: `Too many OTP requests. Please try again in ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""}.` },
           { status: 429 }
         );
       }

@@ -2,17 +2,16 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { requireAdmin } from "@/lib/session";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
-// ₹85/month ≈ $1. Override via RAZORPAY_PLAN_AMOUNT_PAISE env var.
-const PLAN_AMOUNT_PAISE = parseInt(process.env.RAZORPAY_PLAN_AMOUNT_PAISE ?? "8500");
-
 export async function POST() {
   try {
     const session = await requireAdmin();
+
+    // ₹85/month ≈ $1. Override via RAZORPAY_PLAN_AMOUNT_PAISE env var.
+    const PLAN_AMOUNT_PAISE = parseInt(process.env.RAZORPAY_PLAN_AMOUNT_PAISE ?? "8500");
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
 
     const order = await razorpay.orders.create({
       amount: PLAN_AMOUNT_PAISE,

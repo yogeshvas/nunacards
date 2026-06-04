@@ -17,7 +17,7 @@ export async function GET() {
       }),
       prisma.organization.findUnique({
         where: { id: session.user.orgId },
-        select: { id: true, name: true, slug: true, logo: true, plan: true, planExpiresAt: true },
+        select: { id: true, name: true, slug: true, logo: true, plan: true, planExpiresAt: true, trialEndsAt: true },
       }),
     ]);
 

@@ -4,17 +4,16 @@ import Razorpay from "razorpay";
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/db";
 
-const PLAN_AMOUNT_PAISE = parseInt(process.env.RAZORPAY_PLAN_AMOUNT_PAISE ?? "8500");
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
 export async function POST(req: NextRequest) {
   try {
     const session = await requireAdmin();
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.json();
+
+    const PLAN_AMOUNT_PAISE = parseInt(process.env.RAZORPAY_PLAN_AMOUNT_PAISE ?? "8500");
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json({ error: "Missing payment details" }, { status: 400 });
@@ -45,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const org = await prisma.organization.update({
       where: { id: session.user.orgId },
-      data: { plan: "PRO", planExpiresAt: expiresAt },
+      data: { plan: "PRO", planExpiresAt: expiresAt, trialEndsAt: null },
       select: { id: true, name: true, slug: true, logo: true, plan: true, planExpiresAt: true },
     });
 
