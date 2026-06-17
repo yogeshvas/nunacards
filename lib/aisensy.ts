@@ -9,10 +9,20 @@ function log(level: "info" | "error", msg: string, data?: unknown) {
   }
 }
 
+// AiSensy's webhook payloads (and some callers) hand us digits-only numbers
+// (e.g. "918700923340"). Every outbound message must carry a leading "+" —
+// normalize here so no call site can accidentally skip it.
+function withPlus(phone: string): string {
+  const trimmed = phone.trim();
+  return trimmed.startsWith("+") ? trimmed : `+${trimmed}`;
+}
+
 async function aiSensyPost(payload: Record<string, unknown>) {
-  const { campaignName, destination, templateParams } = payload as {
+  const destination = withPlus(String(payload.destination ?? ""));
+  payload = { ...payload, destination };
+
+  const { campaignName, templateParams } = payload as {
     campaignName: string;
-    destination: string;
     templateParams: string[];
   };
 
@@ -43,7 +53,7 @@ export async function sendWhatsAppQr({
   name,
   qrImageUrl,
 }: {
-  phone: string;       // e.g. "918700923340" — digits only, no +
+  phone: string;       // e.g. "918700923340" or "+918700923340" — "+" added automatically if missing
   name: string;
   qrImageUrl: string;
 }) {
