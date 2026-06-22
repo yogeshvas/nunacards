@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { sendWhatsAppCard } from "@/lib/aisensy";
+import { getOrGenerateVCardUrl } from "@/lib/vcardCloud";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,9 +22,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Public .vcf URL — WhatsApp fetches this so the visitor can tap to save the contact
-    const baseUrl = process.env.NEXTAUTH_URL ?? "https://yourdomain.com";
-    const cardDocumentUrl = `${baseUrl}/api/card/${employee.slug}/vcard`;
+    // Cloudinary-hosted .vcf URL — WhatsApp fetches this so the visitor can tap to save the contact
+    const cardDocumentUrl = await getOrGenerateVCardUrl(id);
 
     const destination = `+${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
 

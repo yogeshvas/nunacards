@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/db";
 import { sendWhatsAppCard, sendWhatsAppScanNotification } from "@/lib/aisensy";
+import { getOrGenerateVCardUrl } from "@/lib/vcardCloud";
 
 // ── signature verification ────────────────────────────────────────────────────
 
@@ -146,8 +147,7 @@ export async function POST(req: NextRequest) {
 
   after(async () => {
     try {
-      const baseUrl = process.env.NEXTAUTH_URL ?? "https://yourdomain.com";
-      const cardDocumentUrl = `${baseUrl}/api/card/${employee.slug}/vcard`;
+      const cardDocumentUrl = await getOrGenerateVCardUrl(employee.id);
       await sendWhatsAppCard({
         visitorPhone: senderPhone,
         visitorName: visitorName || "there",
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
       await sendWhatsAppScanNotification({
         employeePhone: employeeDestination,
         employeeName: employee.name,
-        scannedBy: visitorName || senderPhone,
+        scannedBy: senderPhone,
       });
     } catch (err) {
       console.error("[webhook/whatsapp] sendWhatsAppScanNotification error:", err);
