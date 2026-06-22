@@ -74,47 +74,64 @@ export async function sendWhatsAppQr({
   });
 }
 
+// Notifies the employee that their card was just scanned.
+// {{1}} = employee first name, {{2}} = who scanned it (name or phone).
+export async function sendWhatsAppScanNotification({
+  employeePhone,   // destination — the owner of the card that was scanned
+  employeeName,    // {{1}}
+  scannedBy,       // {{2}} — visitor's name or phone number
+}: {
+  employeePhone: string;
+  employeeName: string;
+  scannedBy: string;
+}) {
+  const employeeFirstName = employeeName.split(" ")[0] || "there";
+
+  return aiSensyPost({
+    campaignName: process.env.AISENSY_CAMPAIGN_SCAN ?? "scanned_reply",
+    destination: employeePhone,
+    userName: "ConnectCard",
+    templateParams: [employeeFirstName, scannedBy],
+    source: "nunacards-webhook",
+    media: {},
+    buttons: [],
+    carouselCards: [],
+    location: {},
+    attributes: {},
+    paramsFallbackValue: { FirstName: employeeFirstName },
+  });
+}
+
 export async function sendWhatsAppCard({
   visitorPhone,       // destination — who scanned the QR
   visitorName,        // {{1}} — visitor's first name
-  employeeName,       // {{2}}
-  employeeDesignation, // {{3}}
-  employeeSlug,       // button URL param — card page path
-  profileImageUrl,    // media header image
+  employeeName,       // {{2}} — Visiting Card Guy Name
+  employeeDesignation, // {{3}} — Position
+  cardDocumentUrl,    // media — the visiting-card document (PDF/vCard) the visitor downloads
 }: {
   visitorPhone: string;
   visitorName: string;
   employeeName: string;
   employeeDesignation: string;
-  employeeSlug: string;
-  profileImageUrl?: string | null;
+  cardDocumentUrl?: string | null;
 }) {
   const visitorFirstName = visitorName.split(" ")[0] || "there";
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://yourdomain.com";
-  const cardUrl = `${employeeSlug}`;
 
-  // fallback image if employee has no profile photo
-  const mediaUrl = profileImageUrl
-    ?? "https://d3jt6ku4g6z5l8.cloudfront.net/IMAGE/6353da2e153a147b991dd812/4958901_highanglekidcheatingschooltestmin.jpg";
+  // fallback document if the employee has no generated visiting card yet
+  const mediaUrl = cardDocumentUrl
+    ?? "https://d3jt6ku4g6z5l8.cloudfront.net/FILE/6353da2e153a147b991dd812/4079142_dummy.pdf";
 
   return aiSensyPost({
-    campaignName: process.env.AISENSY_CAMPAIGN_CARD ?? "employee_card_clrq0",
+    campaignName: process.env.AISENSY_CAMPAIGN_CARD ?? "visitingcard",
     destination: visitorPhone,
     userName: "ConnectCard",
     templateParams: [visitorFirstName, employeeName, employeeDesignation],
     source: "nunacards-webhook",
     media: {
       url: mediaUrl,
-      filename: "digital_card",
+      filename: "visiting_card.vcf",
     },
-    buttons: [
-      {
-        type: "button",
-        sub_type: "URL",
-        index: 0,
-        parameters: [{ type: "text", text: cardUrl }],
-      },
-    ],
+    buttons: [],
     carouselCards: [],
     location: {},
     attributes: {},

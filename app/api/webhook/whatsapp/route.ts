@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/db";
-import { sendWhatsAppCard } from "@/lib/aisensy";
-import { getOrGenerateCardImage } from "@/lib/cardImage";
+import { sendWhatsAppCard, sendWhatsAppScanNotification } from "@/lib/aisensy";
+import { getOrGenerateVCardUrl } from "@/lib/vcardCloud";
 
 // ── signature verification ────────────────────────────────────────────────────
 
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
 
   const employee = await prisma.user.findFirst({
     where: { employeeCode, archived: false },
-    select: { id: true, name: true, designation: true, slug: true },
+    select: { id: true, name: true, designation: true, slug: true, phone: true, countryCode: true },
   });
 
   if (!employee) {
@@ -147,17 +147,28 @@ export async function POST(req: NextRequest) {
 
   after(async () => {
     try {
-      const cardImageUrl = await getOrGenerateCardImage(employee.id);
+      const cardDocumentUrl = await getOrGenerateVCardUrl(employee.id);
       await sendWhatsAppCard({
         visitorPhone: senderPhone,
         visitorName: visitorName || "there",
         employeeName: employee.name,
         employeeDesignation: employee.designation ?? "",
-        employeeSlug: employee.slug,
-        profileImageUrl: cardImageUrl,
+        cardDocumentUrl,
       });
     } catch (err) {
       console.error("[webhook/whatsapp] sendWhatsAppCard error:", err);
+    }
+
+    // Notify the employee that their card was just scanned
+    try {
+      const employeeDestination = `+${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
+      await sendWhatsAppScanNotification({
+        employeePhone: employeeDestination,
+        employeeName: employee.name,
+        scannedBy: senderPhone,
+      });
+    } catch (err) {
+      console.error("[webhook/whatsapp] sendWhatsAppScanNotification error:", err);
     }
 
     await Promise.allSettled([

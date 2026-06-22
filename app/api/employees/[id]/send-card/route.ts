@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { sendWhatsAppCard } from "@/lib/aisensy";
-import { getOrGenerateCardImage } from "@/lib/cardImage";
+import { getOrGenerateVCardUrl } from "@/lib/vcardCloud";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,8 +22,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // get cached card image or generate + cache it now
-    const cardImageUrl = await getOrGenerateCardImage(id);
+    // Cloudinary-hosted .vcf URL — WhatsApp fetches this so the visitor can tap to save the contact
+    const cardDocumentUrl = await getOrGenerateVCardUrl(id);
 
     const destination = `+${employee.countryCode.replace(/\D/g, "")}${employee.phone.replace(/\D/g, "")}`;
 
@@ -39,8 +39,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       visitorName: employee.name,
       employeeName: employee.name,
       employeeDesignation: employee.designation ?? "",
-      employeeSlug: employee.slug,
-      profileImageUrl: cardImageUrl,
+      cardDocumentUrl,
     });
 
     return NextResponse.json({ message: "Card sent" });
